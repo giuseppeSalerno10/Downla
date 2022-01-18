@@ -21,14 +21,19 @@ namespace Downla.Http
 
             var headers = headResponse.Content.Headers;
 
+            string name = DateTime.Now.ToString("yyyy-MM-dd");
+
             if (headers.ContentLength is null){ throw new Exception("Lenght is null"); }
-            if (headers.ContentLocation is null) { throw new Exception("Name is null"); }
             if (headers.ContentType is null || headers.ContentType.MediaType is null) { throw new Exception("Type is null"); }
 
+            if (headers.ContentDisposition != null && headers.ContentDisposition.FileName != null) 
+            { 
+                name = headers.ContentDisposition.FileName; 
+            }
 
             metadata = new Metadata()
             {
-                Name = headers.ContentLocation.Fragment,
+                Name = name,
                 Type = headers.ContentType.MediaType,
                 Size = (long) headers.ContentLength
             };

@@ -6,9 +6,11 @@ using System.Threading.Tasks;
 
 namespace Downla.Core
 {
-    internal class ConnectionInfo
+    public enum DownloadStatuses
     {
-        public Task<HttpResponseMessage> Task { get; set; }
-        public int ConnectionIndex { get; set; }
+        Downloading = 1,
+        Completed = 2,
+        Faulted = 3,
+        Canceled = 4,
     }
 }

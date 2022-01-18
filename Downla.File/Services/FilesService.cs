@@ -21,11 +21,11 @@ namespace Downla.Files
             };
         }
 
-        public async Task AppendBytesAsync(string filePath, byte[] bytes)
+        public void AppendBytes(string filePath, byte[] bytes)
         {
             using (var stream = File.Open(filePath, FileMode.Append))
             {
-                await stream.WriteAsync(bytes, 0, bytes.Length);
+                stream.Write(bytes, 0, bytes.Length);
             }
         }
 
