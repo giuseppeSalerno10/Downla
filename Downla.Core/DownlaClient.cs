@@ -5,17 +5,14 @@ namespace Downla.Core
 {
     public class DownlaClient
     {
-        public event EventHandler<string> errorHandler;
-
         private string _basePath = Environment.CurrentDirectory;
-
         private int _maxParts;
         private int _maxPartSize;
-
         private HttpConnectionService _httpConnectionService = new HttpConnectionService();
         private FilesService filesService = new FilesService();
 
         public DownloadInfoes DownloadInfo { get; set;} = new DownloadInfoes() { Status = DownloadStatuses.Downloading };
+
 
         public DownlaClient(int maxParts = 10, int maxPartSize = 5242880, string? path = null)
         {
@@ -28,7 +25,23 @@ namespace Downla.Core
             }
         }
 
-        public async Task StartDownload(string url, CancellationToken ct)
+
+        public DownloadInfoes DownloadAsync(Uri uri, CancellationToken ct)
+        {
+            Task.Run(() => Download(uri,ct));
+
+            return DownloadInfo;
+        }
+
+
+        /// <summary>
+        /// Start an async download operation.
+        /// You can await or monitor the operation by the DownloadInfoes.Status property
+        /// </summary>
+        /// <param name="url">URL</param>
+        /// <param name="ct">Cancellation Token</param>
+        /// <returns></returns>
+        public async Task Download(Uri uri, CancellationToken ct)
         {
             try
             {   
@@ -38,7 +51,7 @@ namespace Downla.Core
 
                 var partsAvaible = _maxParts;
 
-                var fileMetadata = await _httpConnectionService.GetMetadata(url, ct);
+                var fileMetadata = await _httpConnectionService.GetMetadata(uri, ct);
 
                 filesService.CreateFile(_basePath, fileMetadata.Name);
 
@@ -69,7 +82,7 @@ namespace Downla.Core
 
                         var connectionInfoToAdd = new ConnectionInfoes()
                         {
-                            Task = _httpConnectionService.GetFileAsync(url, startRange, endRange, ct),
+                            Task = _httpConnectionService.GetFileAsync(uri, startRange, endRange, ct),
                             ConnectionIndex = index,
                         };
 
@@ -113,12 +126,24 @@ namespace Downla.Core
             }
             catch (Exception e)
             {
-                errorHandler?.Invoke(this, e.Message);
-
-                DownloadInfo.OtherInformations = e.Message;
+                DownloadInfo.AdditionalInformations = e.Message;
                 DownloadInfo.Status = DownloadStatuses.Faulted;
             }
         }
+
+        /// <summary>
+        /// Throw an exception if download is faulted
+        /// </summary>
+        /// <exception cref="Exception">Generic Exception</exception>
+        public void EnsureDownload()
+        {
+            if(DownloadInfo.Status == DownloadStatuses.Faulted)
+            {
+                throw new Exception(DownloadInfo.AdditionalInformations);
+            }
+        }
+
+
     }
 
 }
