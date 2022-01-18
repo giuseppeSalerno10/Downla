@@ -33,25 +33,30 @@ namespace Downla.Core
             return DownloadInfo;
         }
 
-
         /// <summary>
-        /// Start an async download operation.
-        /// You can await or monitor the operation by the DownloadInfoes.Status property
+        /// Throw an exception if download is faulted
         /// </summary>
-        /// <param name="url">URL</param>
-        /// <param name="ct">Cancellation Token</param>
-        /// <returns></returns>
-        public async Task Download(Uri uri, CancellationToken ct)
+        /// <exception cref="Exception">Generic Exception</exception>
+        public void EnsureDownload()
+        {
+            if(DownloadInfo.Status == DownloadStatuses.Faulted)
+            {
+                throw new Exception(DownloadInfo.AdditionalInformations);
+            }
+        }
+
+        private void Download(Uri uri, CancellationToken ct)
         {
             try
-            {   
+            {
                 #region Setup
 
                 List<ConnectionInfoes> connections = new List<ConnectionInfoes>();
 
                 var partsAvaible = _maxParts;
 
-                var fileMetadata = await _httpConnectionService.GetMetadata(uri, ct);
+                var fileMetadata = _httpConnectionService.GetMetadata(uri, ct)
+                    .Result;
 
                 filesService.CreateFile(_basePath, fileMetadata.Name);
 
@@ -74,8 +79,8 @@ namespace Downla.Core
                     while (connections.Count < _maxParts)
                     {
                         var index = fileMap
-                            .Select( (value,index) => new { Value = value, Index = index })
-                            .First( x => x.Value == false ).Index;
+                            .Select((value, index) => new { Value = value, Index = index })
+                            .First(x => x.Value == false).Index;
 
                         var startRange = index * _maxPartSize;
                         var endRange = startRange + _maxPartSize > DownloadInfo.FileSize ? DownloadInfo.FileSize : startRange + _maxPartSize;
@@ -88,10 +93,11 @@ namespace Downla.Core
 
                         DownloadInfo.ActiveParts++;
                         connections.Add(connectionInfoToAdd);
-                     
+
                     }
 
-                    connections.Any(req => 
+                    
+                    connections.Any(req =>
                     {
                         if (req.Task.IsCompleted)
                         {
@@ -110,15 +116,15 @@ namespace Downla.Core
 
                             return true;
                         }
-                        else if(req.Task.IsFaulted)
+                        else if (req.Task.IsFaulted)
                         {
                             DownloadInfo.ActiveParts--;
-                            
+
                             connections.Remove(req);
                         }
                         return false;
                     });
-                
+
                 }
                 #endregion
 
@@ -128,18 +134,6 @@ namespace Downla.Core
             {
                 DownloadInfo.AdditionalInformations = e.Message;
                 DownloadInfo.Status = DownloadStatuses.Faulted;
-            }
-        }
-
-        /// <summary>
-        /// Throw an exception if download is faulted
-        /// </summary>
-        /// <exception cref="Exception">Generic Exception</exception>
-        public void EnsureDownload()
-        {
-            if(DownloadInfo.Status == DownloadStatuses.Faulted)
-            {
-                throw new Exception(DownloadInfo.AdditionalInformations);
             }
         }
 

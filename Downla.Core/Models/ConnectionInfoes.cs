@@ -12,6 +12,6 @@ namespace Downla.Core
         public Task<HttpResponseMessage> Task { get; set; }
         #pragma warning restore CS8618
         
-        public int ConnectionIndex { get; set; }
+        public int Index { get; set; }
     }
 }
