@@ -36,7 +36,7 @@ namespace Downla.Http
 
             metadata = new Metadata()
             {
-                Name = name,
+                Name = name.Replace("\"", ""),
                 Size = (long) headers.ContentLength
             };
 

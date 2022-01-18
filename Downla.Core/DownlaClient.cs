@@ -5,7 +5,7 @@ namespace Downla.Core
 {
     public class DownlaClient
     {
-        private string _basePath = Environment.CurrentDirectory;
+        private string _basePath = $"{Environment.CurrentDirectory}//DownloadedFiles";
         private int _maxParts;
         private int _maxPartSize;
         private HttpConnectionService _httpConnectionService = new HttpConnectionService();
@@ -88,7 +88,7 @@ namespace Downla.Core
                         var connectionInfoToAdd = new ConnectionInfoes()
                         {
                             Task = _httpConnectionService.GetFileAsync(uri, startRange, endRange, ct),
-                            ConnectionIndex = index,
+                            Index = index,
                         };
 
                         DownloadInfo.ActiveParts++;
@@ -96,34 +96,26 @@ namespace Downla.Core
 
                     }
 
-                    
-                    connections.Any(req =>
-                    {
-                        if (req.Task.IsCompleted)
-                        {
+                    var completedConnections = connections.Where(con => con.Task.IsCompleted || con.Task.IsFaulted).ToArray();
 
-                            var bytes = _httpConnectionService.ReadBytes(req.Task.Result)
+                    foreach (var connection in completedConnections)
+                    {
+                        if (connection.Task.IsCompleted)
+                        {
+                            var bytes = _httpConnectionService.ReadBytes(connection.Task.Result)
                                 .Result;
 
                             filesService.AppendBytes($"{DownloadInfo.FileDirectory}/{DownloadInfo.FileName}", bytes);
                             DownloadInfo.CurrentSize += bytes.Length;
 
                             DownloadInfo.CompletedParts++;
-                            DownloadInfo.ActiveParts--;
 
-                            connections.Remove(req);
-                            fileMap[req.ConnectionIndex] = true;
-
-                            return true;
+                            fileMap[connection.Index] = true;
                         }
-                        else if (req.Task.IsFaulted)
-                        {
-                            DownloadInfo.ActiveParts--;
 
-                            connections.Remove(req);
-                        }
-                        return false;
-                    });
+                        DownloadInfo.ActiveParts--;
+                        connections.Remove(connection);
+                    }
 
                 }
                 #endregion
