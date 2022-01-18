@@ -15,7 +15,7 @@ namespace Downla.Core
 
         public DownloadInfo? DownloadInfo { get; set;}
 
-        public Downla(int maxParts = 10, int maxPartSize = 2^20, string? path = null)
+        public Downla(int maxParts = 10, int maxPartSize = 50 * 2^20, string? path = null)
         {
             _maxParts = maxParts;
             _maxPartSize = maxPartSize;
