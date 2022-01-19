@@ -126,10 +126,7 @@
 
                 while (DownloadInfo.CurrentSize == 0 || DownloadInfo.CurrentSize < DownloadInfo.FileSize)
                 {
-                    while (
-                        connections.Count < _maxConnections &&
-                        DownloadInfo.ActiveConnections + DownloadInfo.DownloadedPackets < DownloadInfo.TotalPackets
-                        )
+                    while ( connections.Count < _maxConnections && DownloadInfo.ActiveConnections + DownloadInfo.DownloadedPackets < DownloadInfo.TotalPackets )
                     {
                         var index = fileMap
                             .Select((value, index) => new { Value = value, Index = index })
@@ -138,14 +135,24 @@
                         var startRange = index * _maxPacketSize;
                         var endRange = startRange + _maxPacketSize > DownloadInfo.FileSize ? DownloadInfo.FileSize : startRange + _maxPacketSize;
 
-                        var connectionInfoToAdd = new ConnectionInfoes()
+                        try
                         {
-                            Task = HttpConnectionService.GetFileAsync(uri, startRange, endRange, ct),
-                            Index = index,
-                        };
+                            var task = HttpConnectionService.GetFileAsync(uri, startRange, endRange, ct);
 
-                        DownloadInfo.ActiveConnections++;
-                        connections.Add(connectionInfoToAdd);
+                            var connectionInfoToAdd = new ConnectionInfoes()
+                            {
+                                Task = task,
+                                Index = index,
+                            };
+
+                            DownloadInfo.ActiveConnections++;
+                            connections.Add(connectionInfoToAdd);
+                        }
+                        catch (Exception)
+                        {
+                            Console.WriteLine("Connection creation failed");
+                        }
+
                     }
 
                     var completedConnections = connections.Where(con => con.Task.IsCompleted || con.Task.IsFaulted).ToArray();
