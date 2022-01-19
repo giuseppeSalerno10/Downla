@@ -6,11 +6,7 @@
     <Nullable>enable</Nullable>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Version>1.0.1</Version>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Downla.File\Downla.Files.csproj" />
-    <ProjectReference Include="..\Downla.Http\Downla.Http.csproj" />
-  </ItemGroup>
 
 </Project>

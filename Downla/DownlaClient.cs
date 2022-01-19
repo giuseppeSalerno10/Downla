@@ -1,7 +1,4 @@
-﻿using Downla.Files;
-using Downla.Http;
-
-namespace Downla.Core
+﻿namespace Downla.Core
 {
     public class DownlaClient
     {
@@ -109,10 +106,10 @@ namespace Downla.Core
 
                 var partsAvaible = _maxConnections;
 
-                var fileMetadata = _httpConnectionService.GetMetadata(uri, ct)
+                var fileMetadata = HttpConnectionService.GetMetadata(uri, ct)
                     .Result;
 
-                _filesService.CreateFile(_basePath, fileMetadata.Name);
+                FilesService.CreateFile(_basePath, fileMetadata.Name);
 
                 DownloadInfo.FileName = fileMetadata.Name;
                 DownloadInfo.FileDirectory = _basePath;
@@ -144,7 +141,7 @@ namespace Downla.Core
 
                         var connectionInfoToAdd = new ConnectionInfoes()
                         {
-                            Task = _httpConnectionService.GetFileAsync(uri, startRange, endRange, ct),
+                            Task = HttpConnectionService.GetFileAsync(uri, startRange, endRange, ct),
                             Index = index,
                         };
 
@@ -159,10 +156,10 @@ namespace Downla.Core
                     {
                         if (connection.Task.IsCompleted)
                         {
-                            var bytes = _httpConnectionService.ReadBytes(connection.Task.Result)
+                            var bytes = HttpConnectionService.ReadBytes(connection.Task.Result)
                                 .Result;
 
-                            _filesService.AppendBytes($"{DownloadInfo.FileDirectory}/{DownloadInfo.FileName}", bytes);
+                            FilesService.AppendBytes($"{DownloadInfo.FileDirectory}/{DownloadInfo.FileName}", bytes);
                             DownloadInfo.CurrentSize += bytes.Length;
 
                             DownloadInfo.DownloadedPackets++;

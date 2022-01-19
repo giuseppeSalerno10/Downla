@@ -6,11 +6,9 @@ using System.Threading.Tasks;
 
 namespace Downla
 {
-    public enum DownloadStatuses
+    public class Metadata
     {
-        Downloading = 1,
-        Completed = 2,
-        Faulted = 3,
-        Canceled = 4,
+        public string Name { get; set; } = string.Empty;
+        public long Size { get; set; }
     }
 }
