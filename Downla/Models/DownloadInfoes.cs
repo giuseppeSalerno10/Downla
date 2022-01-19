@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Downla
+﻿namespace Downla
 {
     public class DownloadInfoes
     {
@@ -25,11 +19,11 @@ namespace Downla
             get => additionalInformations ?? throw new ArgumentNullException("AdditionalInformations Is Null");
             set => additionalInformations = value;
         }
-        internal Task DownloadTask 
-        { 
-            get => downloadTask ?? throw new ArgumentNullException("AdditionalInformations Is Null");
-            set => downloadTask = value; 
-        }
 
+        internal Task DownloadTask
+        {
+            get => downloadTask ?? throw new ArgumentNullException("AdditionalInformations Is Null");
+            set => downloadTask = value;
+        }
     }
 }

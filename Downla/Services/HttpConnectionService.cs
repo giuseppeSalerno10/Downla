@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Downla
+﻿namespace Downla
 {
     public class HttpConnectionService
     {
@@ -23,21 +17,21 @@ namespace Downla
 
             string name;
 
-            if (headers.ContentLength is null){ throw new Exception("Lenght is null"); }
+            if (headers.ContentLength is null) { throw new Exception("Lenght is null"); }
 
-            if (headers.ContentDisposition != null && headers.ContentDisposition.FileName != null) 
-            { 
-                name = headers.ContentDisposition.FileName; 
-            } 
+            if (headers.ContentDisposition != null && headers.ContentDisposition.FileName != null)
+            {
+                name = headers.ContentDisposition.FileName;
+            }
             else
-            { 
+            {
                 name = uri.LocalPath.Split("/")[^1];
             }
 
             metadata = new Metadata()
             {
                 Name = name.Replace("\"", ""),
-                Size = (long) headers.ContentLength
+                Size = (long)headers.ContentLength
             };
 
             return metadata;

@@ -8,13 +8,14 @@
 
         private readonly HttpConnectionService _httpConnectionService = new();
         private readonly FilesService _filesService = new();
-        public DownloadInfoes DownloadInfo { get; set;} = new DownloadInfoes() { Status = DownloadStatuses.Downloading };
+        public DownloadInfoes DownloadInfo { get; set; } = new DownloadInfoes() { Status = DownloadStatuses.Downloading };
 
         // Constructors
         /// <summary>
         /// Downla Constructor
         /// </summary>
-        public DownlaClient() { }
+        public DownlaClient()
+        { }
 
         /// <summary>
         /// Downla Constructor
@@ -32,7 +33,7 @@
         /// <param name="directoryPath">Defines the path of the download directory (if null: default value)</param>
         public DownlaClient(int maxConnections, string? directoryPath = null)
         {
-            if(maxConnections <= 0) { throw new ArgumentOutOfRangeException(nameof(maxConnections)); }
+            if (maxConnections <= 0) { throw new ArgumentOutOfRangeException(nameof(maxConnections)); }
 
             _maxConnections = maxConnections;
 
@@ -62,8 +63,6 @@
             }
         }
 
-
-
         // Methods
         /// <summary>
         /// This method will start an asynchronous download operation.
@@ -73,7 +72,7 @@
         /// <returns></returns>
         public DownloadInfoes DownloadAsync(Uri uri, CancellationToken ct)
         {
-            var task = Task.Run(() => Download(uri,ct), ct);
+            var task = Task.Run(() => Download(uri, ct), ct);
 
             return DownloadInfo;
         }
@@ -85,12 +84,12 @@
         /// <exception cref="Exception">Generic Exception</exception>
         public void EnsureDownload()
         {
-            if(DownloadInfo.Status == DownloadStatuses.Downloading)
+            if (DownloadInfo.Status == DownloadStatuses.Downloading)
             {
                 DownloadInfo.DownloadTask.Wait();
             }
 
-            if(DownloadInfo.Status == DownloadStatuses.Faulted)
+            if (DownloadInfo.Status == DownloadStatuses.Faulted)
             {
                 throw new Exception(DownloadInfo.AdditionalInformations);
             }
@@ -121,14 +120,14 @@
 
                 bool[] fileMap = new bool[neededPart];
 
-                #endregion
+                #endregion Setup
 
                 #region Elaboration
 
                 while (DownloadInfo.CurrentSize == 0 || DownloadInfo.CurrentSize < DownloadInfo.FileSize)
                 {
                     while (
-                        connections.Count < _maxConnections && 
+                        connections.Count < _maxConnections &&
                         DownloadInfo.ActiveConnections + DownloadInfo.DownloadedPackets < DownloadInfo.TotalPackets
                         )
                     {
@@ -147,7 +146,6 @@
 
                         DownloadInfo.ActiveConnections++;
                         connections.Add(connectionInfoToAdd);
-
                     }
 
                     var completedConnections = connections.Where(con => con.Task.IsCompleted || con.Task.IsFaulted).ToArray();
@@ -170,9 +168,9 @@
                         DownloadInfo.ActiveConnections--;
                         connections.Remove(connection);
                     }
-
                 }
-                #endregion
+
+                #endregion Elaboration
 
                 DownloadInfo.Status = DownloadStatuses.Completed;
             }
@@ -187,8 +185,5 @@
                 DownloadInfo.Status = DownloadStatuses.Faulted;
             }
         }
-
-
     }
-
 }
