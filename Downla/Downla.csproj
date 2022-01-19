@@ -6,14 +6,19 @@
     <Nullable>enable</Nullable>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Authors>Giuseppe Salerno</Authors>
     <Description>Downla is a client that allows file download with parallel connections.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>image.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Update="Assets\image.png">
+    <None Include="..\image.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
