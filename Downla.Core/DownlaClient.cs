@@ -28,7 +28,7 @@ namespace Downla.Core
 
         public DownloadInfoes DownloadAsync(Uri uri, CancellationToken ct)
         {
-            Task.Run(() => Download(uri,ct));
+            var task = Task.Run(() => Download(uri,ct));
 
             return DownloadInfo;
         }
@@ -39,6 +39,11 @@ namespace Downla.Core
         /// <exception cref="Exception">Generic Exception</exception>
         public void EnsureDownload()
         {
+            if(DownloadInfo.Status == DownloadStatuses.Downloading)
+            {
+                DownloadInfo.DownloadTask.Wait();
+            }
+
             if(DownloadInfo.Status == DownloadStatuses.Faulted)
             {
                 throw new Exception(DownloadInfo.AdditionalInformations);
@@ -76,7 +81,10 @@ namespace Downla.Core
 
                 while (DownloadInfo.CurrentSize == 0 || DownloadInfo.CurrentSize < DownloadInfo.FileSize)
                 {
-                    while (connections.Count < _maxParts)
+                    while (
+                        connections.Count < _maxParts && 
+                        DownloadInfo.ActiveParts + DownloadInfo.CompletedParts < DownloadInfo.TotalParts
+                        )
                     {
                         var index = fileMap
                             .Select((value, index) => new { Value = value, Index = index })
@@ -124,7 +132,12 @@ namespace Downla.Core
             }
             catch (Exception e)
             {
-                DownloadInfo.AdditionalInformations = e.Message;
+                DownloadInfo.AdditionalInformations = new
+                {
+                    Message = e.Message,
+                    StackTrace = e.StackTrace
+                };
+
                 DownloadInfo.Status = DownloadStatuses.Faulted;
             }
         }
