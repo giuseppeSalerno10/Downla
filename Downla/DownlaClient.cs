@@ -6,8 +6,6 @@
         private readonly int _maxConnections = 10;
         private readonly long _maxPacketSize = 5242880;
 
-        private readonly HttpConnectionService _httpConnectionService = new();
-        private readonly FilesService _filesService = new();
         public DownloadInfoes DownloadInfo { get; set; } = new DownloadInfoes() { Status = DownloadStatuses.Downloading };
 
         // Constructors

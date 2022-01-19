@@ -2,7 +2,6 @@
 {
     public class DownloadInfoes
     {
-        private dynamic? additionalInformations;
         private Task? downloadTask;
 
         public DownloadStatuses Status { get; set; }

@@ -17,10 +17,8 @@
 
         public static void AppendBytes(string filePath, byte[] bytes)
         {
-            using (var stream = File.Open(filePath, FileMode.Append))
-            {
-                stream.Write(bytes, 0, bytes.Length);
-            }
+            using var stream = File.Open(filePath, FileMode.Append);
+            stream.Write(bytes, 0, bytes.Length);
         }
     }
 }
