@@ -2,7 +2,7 @@
 {
     public class DownlaClient
     {
-        private readonly string _basePath = $"{Environment.CurrentDirectory}//DownloadedFiles";
+        private readonly string _basePath = $"{Environment.CurrentDirectory}\\DownloadedFiles";
         private readonly int _maxConnections = 10;
         private readonly long _maxPacketSize = 5242880;
 
@@ -176,11 +176,7 @@
             }
             catch (Exception e)
             {
-                DownloadInfo.AdditionalInformations = new
-                {
-                    e.Message,
-                    e.StackTrace
-                };
+                DownloadInfo.AdditionalInformations = e.Message;
 
                 DownloadInfo.Status = DownloadStatuses.Faulted;
             }

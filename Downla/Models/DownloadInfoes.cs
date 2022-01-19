@@ -14,12 +14,7 @@
         public string FileName { get; set; } = string.Empty;
         public string FileDirectory { get; set; } = string.Empty;
 
-        internal dynamic AdditionalInformations
-        {
-            get => additionalInformations ?? throw new ArgumentNullException("AdditionalInformations Is Null");
-            set => additionalInformations = value;
-        }
-
+        internal string AdditionalInformations { get; set; } = string.Empty;
         internal Task DownloadTask
         {
             get => downloadTask ?? throw new ArgumentNullException("AdditionalInformations Is Null");
