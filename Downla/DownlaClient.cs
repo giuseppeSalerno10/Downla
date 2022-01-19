@@ -1,4 +1,4 @@
-﻿namespace Downla.Core
+﻿namespace Downla
 {
     public class DownlaClient
     {
