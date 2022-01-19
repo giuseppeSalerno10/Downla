@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\..\..\Desktop\image.png">
+    <None Update="Assets\image.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
