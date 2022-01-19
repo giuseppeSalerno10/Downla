@@ -5,12 +5,12 @@ namespace Downla.Core
 {
     public class DownlaClient
     {
-        private string _basePath = $"{Environment.CurrentDirectory}//DownloadedFiles";
-        private int _maxConnections = 10;
-        private long _maxPacketSize = 5242880;
+        private readonly string _basePath = $"{Environment.CurrentDirectory}//DownloadedFiles";
+        private readonly int _maxConnections = 10;
+        private readonly long _maxPacketSize = 5242880;
 
-        private HttpConnectionService _httpConnectionService = new HttpConnectionService();
-        private FilesService _filesService = new FilesService();
+        private readonly HttpConnectionService _httpConnectionService = new();
+        private readonly FilesService _filesService = new();
         public DownloadInfoes DownloadInfo { get; set;} = new DownloadInfoes() { Status = DownloadStatuses.Downloading };
 
         // Constructors
@@ -76,7 +76,7 @@ namespace Downla.Core
         /// <returns></returns>
         public DownloadInfoes DownloadAsync(Uri uri, CancellationToken ct)
         {
-            var task = Task.Run(() => Download(uri,ct));
+            var task = Task.Run(() => Download(uri,ct), ct);
 
             return DownloadInfo;
         }
@@ -105,7 +105,7 @@ namespace Downla.Core
             {
                 #region Setup
 
-                List<ConnectionInfoes> connections = new List<ConnectionInfoes>();
+                var connections = new List<ConnectionInfoes>();
 
                 var partsAvaible = _maxConnections;
 
@@ -183,8 +183,8 @@ namespace Downla.Core
             {
                 DownloadInfo.AdditionalInformations = new
                 {
-                    Message = e.Message,
-                    StackTrace = e.StackTrace
+                    e.Message,
+                    e.StackTrace
                 };
 
                 DownloadInfo.Status = DownloadStatuses.Faulted;
