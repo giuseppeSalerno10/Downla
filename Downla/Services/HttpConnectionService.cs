@@ -1,4 +1,6 @@
-﻿namespace Downla
+﻿using System.Net;
+
+namespace Downla
 {
     public class HttpConnectionService
     {
@@ -44,6 +46,20 @@
             var getRequest = new HttpRequestMessage(HttpMethod.Get, uri);
 
             getRequest.Headers.Add("Range", $"bytes={offset}-{count}");
+
+            var task = httpClient.SendAsync(getRequest, ct);
+
+            return task;
+        }
+
+        public static Task<HttpResponseMessage> GetFileAsync(Uri uri, string authorizationHeader, long offset, long count, CancellationToken ct)
+        {
+            var httpClient = new HttpClient();
+
+            var getRequest = new HttpRequestMessage(HttpMethod.Get, uri);
+
+            getRequest.Headers.Add("Range", $"bytes={offset}-{count}");
+            getRequest.Headers.Add("Authorization", authorizationHeader);
 
             var task = httpClient.SendAsync(getRequest, ct);
 

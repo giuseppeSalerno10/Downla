@@ -78,6 +78,20 @@
         }
 
         /// <summary>
+        /// This method will start an asynchronous download operation. (with Authorization)
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <param name="ct"></param>
+        /// <param name="authorizationHeader"></param>
+        /// <returns></returns>
+        public DownloadInfoes DownloadAsync(Uri uri, string authorizationHeader, CancellationToken ct)
+        {
+            var task = Task.Run(() => Download(uri, ct, authorizationHeader), ct);
+
+            return DownloadInfo;
+        }
+
+        /// <summary>
         /// Await for download completion.
         /// Throw an exception if the operation is faulted.
         /// </summary>
@@ -95,7 +109,7 @@
             }
         }
 
-        private void Download(Uri uri, CancellationToken ct)
+        private void Download(Uri uri, CancellationToken ct, string? authorizationHeader = null)
         {
             try
             {
@@ -137,7 +151,18 @@
 
                         try
                         {
-                            var task = HttpConnectionService.GetFileAsync(uri, startRange, endRange, ct);
+                            Task<HttpResponseMessage> task;
+
+                            if(authorizationHeader is null)
+                            {
+                                task = HttpConnectionService.GetFileAsync(uri, startRange, endRange, ct);
+
+                            }
+                            else
+                            {
+                                task = HttpConnectionService.GetFileAsync(uri, authorizationHeader, startRange, endRange, ct);
+                            }
+
 
                             var connectionInfoToAdd = new ConnectionInfoes()
                             {
