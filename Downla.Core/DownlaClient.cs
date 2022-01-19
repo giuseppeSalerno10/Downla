@@ -6,26 +6,74 @@ namespace Downla.Core
     public class DownlaClient
     {
         private string _basePath = $"{Environment.CurrentDirectory}//DownloadedFiles";
-        private int _maxParts;
-        private int _maxPartSize;
-        private HttpConnectionService _httpConnectionService = new HttpConnectionService();
-        private FilesService filesService = new FilesService();
+        private int _maxConnections = 10;
+        private long _maxPacketSize = 5242880;
 
+        private HttpConnectionService _httpConnectionService = new HttpConnectionService();
+        private FilesService _filesService = new FilesService();
         public DownloadInfoes DownloadInfo { get; set;} = new DownloadInfoes() { Status = DownloadStatuses.Downloading };
 
+        // Constructors
+        /// <summary>
+        /// Downla Constructor
+        /// </summary>
+        public DownlaClient() { }
 
-        public DownlaClient(int maxParts = 10, int maxPartSize = 5242880, string? path = null)
+        /// <summary>
+        /// Downla Constructor
+        /// </summary>
+        /// <param name="directoryPath">Defines the path of the download directory</param>
+        public DownlaClient(string directoryPath)
         {
-            _maxParts = maxParts;
-            _maxPartSize = maxPartSize;
+            _basePath = directoryPath;
+        }
 
-            if (path != null)
+        /// <summary>
+        /// Downla Constructor
+        /// </summary>
+        /// <param name="maxConnections">Defines the maximum number of concurrent HTTP connections</param>
+        /// <param name="directoryPath">Defines the path of the download directory (if null: default value)</param>
+        public DownlaClient(int maxConnections, string? directoryPath = null)
+        {
+            if(maxConnections <= 0) { throw new ArgumentOutOfRangeException(nameof(maxConnections)); }
+
+            _maxConnections = maxConnections;
+
+            if (directoryPath != null)
             {
-                _basePath = path;
+                _basePath = directoryPath;
+            }
+        }
+
+        /// <summary>
+        /// Downla Constructor
+        /// </summary>
+        /// <param name="maxConnections">Defines the maximum number of concurrent HTTP connections</param>
+        /// <param name="maxPacketSize">Defines the maximum size of a packet</param>
+        /// <param name="directoryPath">Defines the path of the download directory (if null: default value)</param>
+        public DownlaClient(int maxConnections, long maxPacketSize, string? directoryPath = null)
+        {
+            if (maxConnections <= 0) { throw new ArgumentOutOfRangeException(nameof(maxConnections)); }
+            if (maxPacketSize <= 0) { throw new ArgumentOutOfRangeException(nameof(maxConnections)); }
+
+            _maxConnections = maxConnections;
+            _maxPacketSize = maxPacketSize;
+
+            if (directoryPath != null)
+            {
+                _basePath = directoryPath;
             }
         }
 
 
+
+        // Methods
+        /// <summary>
+        /// This method will start an asynchronous download operation.
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
         public DownloadInfoes DownloadAsync(Uri uri, CancellationToken ct)
         {
             var task = Task.Run(() => Download(uri,ct));
@@ -34,7 +82,8 @@ namespace Downla.Core
         }
 
         /// <summary>
-        /// Throw an exception if download is faulted
+        /// Await for download completion.
+        /// Throw an exception if the operation is faulted.
         /// </summary>
         /// <exception cref="Exception">Generic Exception</exception>
         public void EnsureDownload()
@@ -58,20 +107,20 @@ namespace Downla.Core
 
                 List<ConnectionInfoes> connections = new List<ConnectionInfoes>();
 
-                var partsAvaible = _maxParts;
+                var partsAvaible = _maxConnections;
 
                 var fileMetadata = _httpConnectionService.GetMetadata(uri, ct)
                     .Result;
 
-                filesService.CreateFile(_basePath, fileMetadata.Name);
+                _filesService.CreateFile(_basePath, fileMetadata.Name);
 
                 DownloadInfo.FileName = fileMetadata.Name;
                 DownloadInfo.FileDirectory = _basePath;
                 DownloadInfo.FileSize = fileMetadata.Size;
 
-                var neededPart = (fileMetadata.Size % _maxPartSize == 0) ? (int)(fileMetadata.Size / _maxPartSize) : (int)(fileMetadata.Size / _maxPartSize) + 1;
+                var neededPart = (fileMetadata.Size % _maxPacketSize == 0) ? (int)(fileMetadata.Size / _maxPacketSize) : (int)(fileMetadata.Size / _maxPacketSize) + 1;
 
-                DownloadInfo.TotalParts = neededPart;
+                DownloadInfo.TotalPackets = neededPart;
 
                 bool[] fileMap = new bool[neededPart];
 
@@ -82,16 +131,16 @@ namespace Downla.Core
                 while (DownloadInfo.CurrentSize == 0 || DownloadInfo.CurrentSize < DownloadInfo.FileSize)
                 {
                     while (
-                        connections.Count < _maxParts && 
-                        DownloadInfo.ActiveParts + DownloadInfo.CompletedParts < DownloadInfo.TotalParts
+                        connections.Count < _maxConnections && 
+                        DownloadInfo.ActiveConnections + DownloadInfo.DownloadedPackets < DownloadInfo.TotalPackets
                         )
                     {
                         var index = fileMap
                             .Select((value, index) => new { Value = value, Index = index })
                             .First(x => x.Value == false).Index;
 
-                        var startRange = index * _maxPartSize;
-                        var endRange = startRange + _maxPartSize > DownloadInfo.FileSize ? DownloadInfo.FileSize : startRange + _maxPartSize;
+                        var startRange = index * _maxPacketSize;
+                        var endRange = startRange + _maxPacketSize > DownloadInfo.FileSize ? DownloadInfo.FileSize : startRange + _maxPacketSize;
 
                         var connectionInfoToAdd = new ConnectionInfoes()
                         {
@@ -99,7 +148,7 @@ namespace Downla.Core
                             Index = index,
                         };
 
-                        DownloadInfo.ActiveParts++;
+                        DownloadInfo.ActiveConnections++;
                         connections.Add(connectionInfoToAdd);
 
                     }
@@ -113,15 +162,15 @@ namespace Downla.Core
                             var bytes = _httpConnectionService.ReadBytes(connection.Task.Result)
                                 .Result;
 
-                            filesService.AppendBytes($"{DownloadInfo.FileDirectory}/{DownloadInfo.FileName}", bytes);
+                            _filesService.AppendBytes($"{DownloadInfo.FileDirectory}/{DownloadInfo.FileName}", bytes);
                             DownloadInfo.CurrentSize += bytes.Length;
 
-                            DownloadInfo.CompletedParts++;
+                            DownloadInfo.DownloadedPackets++;
 
                             fileMap[connection.Index] = true;
                         }
 
-                        DownloadInfo.ActiveParts--;
+                        DownloadInfo.ActiveConnections--;
                         connections.Remove(connection);
                     }
 
