@@ -4,9 +4,9 @@ namespace Downla
 {
     public class HttpConnectionService
     {
-        public static async Task<Metadata> GetMetadata(Uri uri, CancellationToken ct)
+        public static async Task<MetadataModel> GetMetadata(Uri uri, CancellationToken ct)
         {
-            Metadata metadata;
+            MetadataModel metadata;
 
             var httpClient = new HttpClient();
 
@@ -30,7 +30,7 @@ namespace Downla
                 name = uri.LocalPath.Split("/")[^1];
             }
 
-            metadata = new Metadata()
+            metadata = new MetadataModel()
             {
                 Name = name.Replace("\"", ""),
                 Size = (long)headers.ContentLength

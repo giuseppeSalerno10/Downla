@@ -6,7 +6,7 @@
         private readonly int _maxConnections = 10;
         private readonly long _maxPacketSize = 5242880;
 
-        public DownloadInfoes DownloadInfo { get; set; } = new DownloadInfoes() { Status = DownloadStatuses.Downloading };
+        public DownloadInfosModel DownloadInfos { get; set; } = new DownloadInfosModel() { Status = DownloadStatuses.Downloading };
 
         // Constructors
         /// <summary>
@@ -68,11 +68,11 @@
         /// <param name="uri"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public DownloadInfoes DownloadAsync(Uri uri, CancellationToken ct)
+        public DownloadInfosModel DownloadAsync(Uri uri, CancellationToken ct)
         {
             var task = Task.Run(() => Download(uri, ct), ct);
 
-            return DownloadInfo;
+            return DownloadInfos;
         }
 
         /// <summary>
@@ -82,11 +82,11 @@
         /// <param name="ct"></param>
         /// <param name="authorizationHeader"></param>
         /// <returns></returns>
-        public DownloadInfoes DownloadAsync(Uri uri, string authorizationHeader, CancellationToken ct)
+        public DownloadInfosModel DownloadAsync(Uri uri, string authorizationHeader, CancellationToken ct)
         {
             var task = Task.Run(() => Download(uri, ct, authorizationHeader), ct);
 
-            return DownloadInfo;
+            return DownloadInfos;
         }
 
         /// <summary>
@@ -96,14 +96,14 @@
         /// <exception cref="Exception">Generic Exception</exception>
         public void EnsureDownload()
         {
-            if (DownloadInfo.Status == DownloadStatuses.Downloading)
+            if (DownloadInfos.Status == DownloadStatuses.Downloading)
             {
-                DownloadInfo.DownloadTask.Wait();
+                DownloadInfos.DownloadTask.Wait();
             }
 
-            if (DownloadInfo.Status == DownloadStatuses.Faulted)
+            if (DownloadInfos.Status == DownloadStatuses.Faulted)
             {
-                throw new Exception(DownloadInfo.AdditionalInformations);
+                throw DownloadInfos.Exception;
             }
         }
 
@@ -113,7 +113,7 @@
             {
                 #region Setup
 
-                var connections = new List<ConnectionInfoes>();
+                var connections = new List<ConnectionInfosModel>();
 
                 var partsAvaible = _maxConnections;
 
@@ -122,13 +122,13 @@
 
                 FilesService.CreateFile(_basePath, fileMetadata.Name);
 
-                DownloadInfo.FileName = fileMetadata.Name;
-                DownloadInfo.FileDirectory = _basePath;
-                DownloadInfo.FileSize = fileMetadata.Size;
+                DownloadInfos.FileName = fileMetadata.Name;
+                DownloadInfos.FileDirectory = _basePath;
+                DownloadInfos.FileSize = fileMetadata.Size;
 
                 var neededPart = (fileMetadata.Size % _maxPacketSize == 0) ? (int)(fileMetadata.Size / _maxPacketSize) : (int)(fileMetadata.Size / _maxPacketSize) + 1;
 
-                DownloadInfo.TotalPackets = neededPart;
+                DownloadInfos.TotalPackets = neededPart;
 
                 bool[] fileMap = new bool[neededPart];
 
@@ -136,16 +136,16 @@
 
                 #region Elaboration
 
-                while (DownloadInfo.CurrentSize == 0 || DownloadInfo.CurrentSize < DownloadInfo.FileSize)
+                while (DownloadInfos.CurrentSize == 0 || DownloadInfos.CurrentSize < DownloadInfos.FileSize)
                 {
-                    while ( connections.Count < _maxConnections && DownloadInfo.ActiveConnections + DownloadInfo.DownloadedPackets < DownloadInfo.TotalPackets )
+                    while ( connections.Count < _maxConnections && DownloadInfos.ActiveConnections + DownloadInfos.DownloadedPackets < DownloadInfos.TotalPackets )
                     {
                         var index = fileMap
                             .Select((value, index) => new { Value = value, Index = index })
                             .First(x => x.Value == false).Index;
 
                         var startRange = index * _maxPacketSize;
-                        var endRange = startRange + _maxPacketSize > DownloadInfo.FileSize ? DownloadInfo.FileSize : startRange + _maxPacketSize;
+                        var endRange = startRange + _maxPacketSize > DownloadInfos.FileSize ? DownloadInfos.FileSize : startRange + _maxPacketSize;
 
                         try
                         {
@@ -162,13 +162,13 @@
                             }
 
 
-                            var connectionInfoToAdd = new ConnectionInfoes()
+                            var connectionInfoToAdd = new ConnectionInfosModel()
                             {
                                 Task = task,
                                 Index = index,
                             };
 
-                            DownloadInfo.ActiveConnections++;
+                            DownloadInfos.ActiveConnections++;
                             connections.Add(connectionInfoToAdd);
                         }
                         catch (Exception)
@@ -187,28 +187,28 @@
                             var bytes = HttpConnectionService.ReadBytes(connection.Task.Result)
                                 .Result;
 
-                            FilesService.AppendBytes($"{DownloadInfo.FileDirectory}/{DownloadInfo.FileName}", bytes);
-                            DownloadInfo.CurrentSize += bytes.Length;
+                            FilesService.AppendBytes($"{DownloadInfos.FileDirectory}/{DownloadInfos.FileName}", bytes);
+                            DownloadInfos.CurrentSize += bytes.Length;
 
-                            DownloadInfo.DownloadedPackets++;
+                            DownloadInfos.DownloadedPackets++;
 
                             fileMap[connection.Index] = true;
                         }
 
-                        DownloadInfo.ActiveConnections--;
+                        DownloadInfos.ActiveConnections--;
                         connections.Remove(connection);
                     }
                 }
 
                 #endregion Elaboration
 
-                DownloadInfo.Status = DownloadStatuses.Completed;
+                DownloadInfos.Status = DownloadStatuses.Completed;
             }
             catch (Exception e)
             {
-                DownloadInfo.AdditionalInformations = e.Message;
+                DownloadInfos.Exception = e;
 
-                DownloadInfo.Status = DownloadStatuses.Faulted;
+                DownloadInfos.Status = DownloadStatuses.Faulted;
             }
         }
     }

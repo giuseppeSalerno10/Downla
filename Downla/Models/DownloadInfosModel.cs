@@ -1,8 +1,9 @@
 ﻿namespace Downla
 {
-    public class DownloadInfoes
+    public class DownloadInfosModel
     {
         private Task? downloadTask;
+        private Exception? exception;
 
         public DownloadStatuses Status { get; set; }
         public int TotalPackets { get; set; }
@@ -13,10 +14,14 @@
         public string FileName { get; set; } = string.Empty;
         public string FileDirectory { get; set; } = string.Empty;
 
-        internal string AdditionalInformations { get; set; } = string.Empty;
+        internal Exception Exception 
+        { 
+            get => exception ?? throw new ArgumentNullException("Exception Is Null");
+            set => exception = value; 
+        }
         internal Task DownloadTask
         {
-            get => downloadTask ?? throw new ArgumentNullException("AdditionalInformations Is Null");
+            get => downloadTask ?? throw new ArgumentNullException("DownloadTask Is Null");
             set => downloadTask = value;
         }
     }
