@@ -39,7 +39,7 @@ namespace Downla
             return metadata;
         }
 
-        public static Task<HttpResponseMessage> GetFileAsync(Uri uri, long offset, long count, CancellationToken ct)
+        public static HttpResponseMessage GetFileRange(Uri uri, long offset, long count, CancellationToken ct)
         {
             var httpClient = new HttpClient();
 
@@ -47,12 +47,12 @@ namespace Downla
 
             getRequest.Headers.Add("Range", $"bytes={offset}-{count}");
 
-            var task = httpClient.SendAsync(getRequest, ct);
+            var response = httpClient.SendAsync(getRequest, ct).Result;
 
-            return task;
+            return response;
         }
 
-        public static Task<HttpResponseMessage> GetFileAsync(Uri uri, string authorizationHeader, long offset, long count, CancellationToken ct)
+        public static HttpResponseMessage GetFileRange(Uri uri, string authorizationHeader, long offset, long count, CancellationToken ct)
         {
             var httpClient = new HttpClient();
 
@@ -61,9 +61,9 @@ namespace Downla
             getRequest.Headers.Add("Range", $"bytes={offset}-{count}");
             getRequest.Headers.Add("Authorization", authorizationHeader);
 
-            var task = httpClient.SendAsync(getRequest, ct);
+            var response = httpClient.SendAsync(getRequest, ct).Result;
 
-            return task;
+            return response;
         }
 
         public static async Task<byte[]> ReadBytes(HttpResponseMessage message)

@@ -2,10 +2,11 @@
 {
     public class DownlaClient
     {
-        private readonly string _basePath = $"{Environment.CurrentDirectory}\\DownloadedFiles";
-        private readonly int _maxConnections = 10;
-        private readonly long _maxPacketSize = 5242880;
         private DownloadInfosModel? downloadInfos;
+
+        public string DownloadPath { get; set; } = $"{Environment.CurrentDirectory}\\DownloadedFiles";
+        public int MaxConnections { get; set; } = 10;
+        public long MaxPacketSize { get; set; } = 5242880;
 
         public DownloadInfosModel DownloadInfos 
         { 
@@ -25,7 +26,7 @@
         /// <param name="directoryPath">Defines the path of the download directory</param>
         public DownlaClient(string directoryPath)
         {
-            _basePath = directoryPath;
+            DownloadPath = directoryPath;
         }
 
         /// <summary>
@@ -37,11 +38,11 @@
         {
             if (maxConnections <= 0) { throw new ArgumentOutOfRangeException(nameof(maxConnections)); }
 
-            _maxConnections = maxConnections;
+            MaxConnections = maxConnections;
 
             if (directoryPath != null)
             {
-                _basePath = directoryPath;
+                DownloadPath = directoryPath;
             }
         }
 
@@ -56,12 +57,12 @@
             if (maxConnections <= 0) { throw new ArgumentOutOfRangeException(nameof(maxConnections)); }
             if (maxPacketSize <= 0) { throw new ArgumentOutOfRangeException(nameof(maxConnections)); }
 
-            _maxConnections = maxConnections;
-            _maxPacketSize = maxPacketSize;
+            MaxConnections = maxConnections;
+            MaxPacketSize = maxPacketSize;
 
             if (directoryPath != null)
             {
-                _basePath = directoryPath;
+                DownloadPath = directoryPath;
             }
         }
         #endregion
@@ -117,7 +118,6 @@
             }
         }
 
-
         private void Download(Uri uri, CancellationToken ct, string? authorizationHeader = null)
         {
             try
@@ -129,18 +129,18 @@
                 var completedConnections = new List<ConnectionInfosModel>();
                 var activeConnections = new List<ConnectionInfosModel>();
 
-                var partsAvaible = _maxConnections;
+                var partsAvaible = MaxConnections;
 
                 var fileMetadata = HttpConnectionService.GetMetadata(uri, ct)
                     .Result;
 
-                FilesService.CreateFile(_basePath, fileMetadata.Name);
+                FilesService.CreateFile(DownloadPath, fileMetadata.Name);
 
                 DownloadInfos.FileName = fileMetadata.Name;
-                DownloadInfos.FileDirectory = _basePath;
+                DownloadInfos.FileDirectory = DownloadPath;
                 DownloadInfos.FileSize = fileMetadata.Size;
 
-                var neededPart = (fileMetadata.Size % _maxPacketSize == 0) ? (int)(fileMetadata.Size / _maxPacketSize) : (int)(fileMetadata.Size / _maxPacketSize) + 1;
+                var neededPart = (fileMetadata.Size % MaxPacketSize == 0) ? (int)(fileMetadata.Size / MaxPacketSize) : (int)(fileMetadata.Size / MaxPacketSize) + 1;
 
                 DownloadInfos.TotalPackets = neededPart;
 
@@ -153,17 +153,17 @@
                 while (DownloadInfos.CurrentSize == 0 || DownloadInfos.CurrentSize < DownloadInfos.FileSize)
                 {
                     // New requests creation
-                    while (activeConnections.Count < _maxConnections && DownloadInfos.ActiveConnections + DownloadInfos.DownloadedPackets < DownloadInfos.TotalPackets - 1)
+                    while (activeConnections.Count < MaxConnections && DownloadInfos.ActiveConnections + DownloadInfos.DownloadedPackets < DownloadInfos.TotalPackets - 1)
                     {
 
-                        var startRange = fileIndex * _maxPacketSize;
-                        var endRange = startRange + _maxPacketSize > DownloadInfos.FileSize ? DownloadInfos.FileSize : startRange + _maxPacketSize;
+                        var startRange = fileIndex * MaxPacketSize;
+                        var endRange = startRange + MaxPacketSize > DownloadInfos.FileSize ? DownloadInfos.FileSize : startRange + MaxPacketSize;
 
                         try
                         {
                             Task<HttpResponseMessage> task = authorizationHeader == null ? 
-                                HttpConnectionService.GetFileAsync(uri, startRange, endRange, ct) : 
-                                HttpConnectionService.GetFileAsync(uri, authorizationHeader, startRange, endRange, ct);
+                                Task.Run(() => HttpConnectionService.GetFileRange(uri, startRange, endRange, ct), ct) :
+                                Task.Run(() => HttpConnectionService.GetFileRange(uri, authorizationHeader, startRange, endRange, ct), ct) ;
 
                             var connectionInfoToAdd = new ConnectionInfosModel()
                             {
