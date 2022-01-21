@@ -73,5 +73,9 @@ namespace Downla
                 .Content
                 .ReadAsByteArrayAsync();
         }
+
+        public static void Ensure()
+        {
+        }
     }
 }

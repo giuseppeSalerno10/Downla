@@ -124,7 +124,6 @@
             {
                 #region Setup
                 var writeIndex = 0;
-                var fileIndex = 0;
 
                 var completedConnections = new List<ConnectionInfosModel>();
                 var activeConnections = new List<ConnectionInfosModel>();
@@ -144,7 +143,11 @@
 
                 DownloadInfos.TotalPackets = neededPart;
 
-                bool[] fileMap = new bool[neededPart];
+                Stack<int> indexStack = new Stack<int>();
+                for (int i = 0; i < DownloadInfos.TotalPackets; i++)
+                {
+                    indexStack.Push(i);
+                }
 
                 #endregion Setup
 
@@ -153,33 +156,25 @@
                 while (DownloadInfos.CurrentSize == 0 || DownloadInfos.CurrentSize < DownloadInfos.FileSize)
                 {
                     // New requests creation
-                    while (activeConnections.Count < MaxConnections && DownloadInfos.ActiveConnections + DownloadInfos.DownloadedPackets < DownloadInfos.TotalPackets - 1)
+                    while (activeConnections.Count < MaxConnections && DownloadInfos.ActiveConnections + DownloadInfos.DownloadedPackets < DownloadInfos.TotalPackets)
                     {
+                        var fileIndex = indexStack.Pop();
 
                         var startRange = fileIndex * MaxPacketSize;
                         var endRange = startRange + MaxPacketSize > DownloadInfos.FileSize ? DownloadInfos.FileSize : startRange + MaxPacketSize;
 
-                        try
+                        Task<HttpResponseMessage> task = authorizationHeader == null ? 
+                            Task.Run(() => HttpConnectionService.GetFileRange(uri, startRange, endRange, ct), ct) :
+                            Task.Run(() => HttpConnectionService.GetFileRange(uri, authorizationHeader, startRange, endRange, ct), ct) ;
+
+                        var connectionInfoToAdd = new ConnectionInfosModel()
                         {
-                            Task<HttpResponseMessage> task = authorizationHeader == null ? 
-                                Task.Run(() => HttpConnectionService.GetFileRange(uri, startRange, endRange, ct), ct) :
-                                Task.Run(() => HttpConnectionService.GetFileRange(uri, authorizationHeader, startRange, endRange, ct), ct) ;
+                            Task = task,
+                            Index = fileIndex,
+                        };
 
-                            var connectionInfoToAdd = new ConnectionInfosModel()
-                            {
-                                Task = task,
-                                Index = fileIndex,
-                            };
-
-                            DownloadInfos.ActiveConnections++;
-                            activeConnections.Add(connectionInfoToAdd);
-
-                            fileIndex++;
-                        }
-                        catch (Exception)
-                        {
-                            Console.WriteLine("Connection creation failed");
-                        }
+                        DownloadInfos.ActiveConnections++;
+                        activeConnections.Add(connectionInfoToAdd);
 
                     }
 
@@ -188,8 +183,20 @@
                     {
                         if (connection.Task.IsCompleted)
                         {
-                            completedConnections.Add(connection);
-                            activeConnections.Remove(connection);
+                            try
+                            {
+                                var connectionResult = connection.Task.Result;
+                                connectionResult.EnsureSuccessStatusCode();
+
+                                completedConnections.Add(connection);
+                                activeConnections.Remove(connection);
+                                DownloadInfos.DownloadedPackets++;
+
+                            }
+                            catch (Exception)
+                            {
+                                indexStack.Push(connection.Index);
+                            }
                             DownloadInfos.ActiveConnections--;
                         }
                     }
@@ -205,11 +212,7 @@
                             FilesService.AppendBytes($"{DownloadInfos.FileDirectory}/{DownloadInfos.FileName}", bytes);
                             DownloadInfos.CurrentSize += bytes.Length;
 
-                            DownloadInfos.DownloadedPackets++;
-
                             writeIndex++;
-
-                            fileMap[completedConnection.Index] = true;
 
                             completedConnections.Remove(completedConnection);
                         }
