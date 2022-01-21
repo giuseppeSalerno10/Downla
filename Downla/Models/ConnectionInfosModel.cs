@@ -1,6 +1,6 @@
 ﻿namespace Downla
 {
-    internal class ConnectionInfosModel
+    public class ConnectionInfosModel
     {
 #pragma warning disable CS8618
         public Task<HttpResponseMessage> Task { get; set; }

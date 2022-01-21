@@ -14,7 +14,10 @@
                 stream.Close();
             };
         }
-
+        public static void DeleteFile(string path, string fileName)
+        {
+            File.Delete($"{path}/{fileName}");
+        }
         public static void AppendBytes(string filePath, byte[] bytes)
         {
             using var stream = File.Open(filePath, FileMode.Append);

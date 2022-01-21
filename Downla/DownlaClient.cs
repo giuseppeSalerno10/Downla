@@ -5,15 +5,19 @@
         private readonly string _basePath = $"{Environment.CurrentDirectory}\\DownloadedFiles";
         private readonly int _maxConnections = 10;
         private readonly long _maxPacketSize = 5242880;
+        private DownloadInfosModel? downloadInfos;
 
-        public DownloadInfosModel DownloadInfos { get; set; } = new DownloadInfosModel() { Status = DownloadStatuses.Downloading };
+        public DownloadInfosModel DownloadInfos 
+        { 
+            get => downloadInfos ?? throw new ArgumentNullException("DownloadInfos is null"); 
+            set => downloadInfos = value; 
+        }
 
-        // Constructors
+        #region Constructors
         /// <summary>
         /// Downla Constructor
         /// </summary>
-        public DownlaClient()
-        { }
+        public DownlaClient() { }
 
         /// <summary>
         /// Downla Constructor
@@ -60,8 +64,10 @@
                 _basePath = directoryPath;
             }
         }
+        #endregion
 
-        // Methods
+        #region Methods
+
         /// <summary>
         /// This method will start an asynchronous download operation.
         /// </summary>
@@ -70,10 +76,13 @@
         /// <returns></returns>
         public DownloadInfosModel DownloadAsync(Uri uri, CancellationToken ct)
         {
-            var task = Task.Run(() => Download(uri, ct), ct);
+            DownloadInfos = new DownloadInfosModel() { Status = DownloadStatuses.Downloading };
+
+            DownloadInfos.DownloadTask = Task.Run(() => Download(uri, ct), ct);
 
             return DownloadInfos;
         }
+
 
         /// <summary>
         /// This method will start an asynchronous download operation. (with Authorization)
@@ -88,6 +97,7 @@
 
             return DownloadInfos;
         }
+
 
         /// <summary>
         /// Await for download completion.
@@ -107,13 +117,17 @@
             }
         }
 
+
         private void Download(Uri uri, CancellationToken ct, string? authorizationHeader = null)
         {
             try
             {
                 #region Setup
+                var writeIndex = 0;
+                var fileIndex = 0;
 
-                var connections = new List<ConnectionInfosModel>();
+                var completedConnections = new List<ConnectionInfosModel>();
+                var activeConnections = new List<ConnectionInfosModel>();
 
                 var partsAvaible = _maxConnections;
 
@@ -138,38 +152,29 @@
 
                 while (DownloadInfos.CurrentSize == 0 || DownloadInfos.CurrentSize < DownloadInfos.FileSize)
                 {
-                    while ( connections.Count < _maxConnections && DownloadInfos.ActiveConnections + DownloadInfos.DownloadedPackets < DownloadInfos.TotalPackets )
+                    // New requests creation
+                    while (activeConnections.Count < _maxConnections && DownloadInfos.ActiveConnections + DownloadInfos.DownloadedPackets < DownloadInfos.TotalPackets - 1)
                     {
-                        var index = fileMap
-                            .Select((value, index) => new { Value = value, Index = index })
-                            .First(x => x.Value == false).Index;
 
-                        var startRange = index * _maxPacketSize;
+                        var startRange = fileIndex * _maxPacketSize;
                         var endRange = startRange + _maxPacketSize > DownloadInfos.FileSize ? DownloadInfos.FileSize : startRange + _maxPacketSize;
 
                         try
                         {
-                            Task<HttpResponseMessage> task;
-
-                            if(authorizationHeader is null)
-                            {
-                                task = HttpConnectionService.GetFileAsync(uri, startRange, endRange, ct);
-
-                            }
-                            else
-                            {
-                                task = HttpConnectionService.GetFileAsync(uri, authorizationHeader, startRange, endRange, ct);
-                            }
-
+                            Task<HttpResponseMessage> task = authorizationHeader == null ? 
+                                HttpConnectionService.GetFileAsync(uri, startRange, endRange, ct) : 
+                                HttpConnectionService.GetFileAsync(uri, authorizationHeader, startRange, endRange, ct);
 
                             var connectionInfoToAdd = new ConnectionInfosModel()
                             {
                                 Task = task,
-                                Index = index,
+                                Index = fileIndex,
                             };
 
                             DownloadInfos.ActiveConnections++;
-                            connections.Add(connectionInfoToAdd);
+                            activeConnections.Add(connectionInfoToAdd);
+
+                            fileIndex++;
                         }
                         catch (Exception)
                         {
@@ -178,26 +183,38 @@
 
                     }
 
-                    var completedConnections = connections.Where(con => con.Task.IsCompleted || con.Task.IsFaulted).ToArray();
-
-                    foreach (var connection in completedConnections)
+                    // Get completed connections
+                    foreach (var connection in activeConnections.ToArray())
                     {
                         if (connection.Task.IsCompleted)
                         {
-                            var bytes = HttpConnectionService.ReadBytes(connection.Task.Result)
-                                .Result;
+                            completedConnections.Add(connection);
+                            activeConnections.Remove(connection);
+                            DownloadInfos.ActiveConnections--;
+                        }
+                    }
+
+                    // Write on file
+                    foreach (var completedConnection in completedConnections.ToArray())
+                    {
+                        if(completedConnection.Index == writeIndex)
+                        {
+                            var bytes = HttpConnectionService.ReadBytes(completedConnection.Task.Result)
+                               .Result;
 
                             FilesService.AppendBytes($"{DownloadInfos.FileDirectory}/{DownloadInfos.FileName}", bytes);
                             DownloadInfos.CurrentSize += bytes.Length;
 
                             DownloadInfos.DownloadedPackets++;
 
-                            fileMap[connection.Index] = true;
-                        }
+                            writeIndex++;
 
-                        DownloadInfos.ActiveConnections--;
-                        connections.Remove(connection);
+                            fileMap[completedConnection.Index] = true;
+
+                            completedConnections.Remove(completedConnection);
+                        }
                     }
+
                 }
 
                 #endregion Elaboration
@@ -208,8 +225,12 @@
             {
                 DownloadInfos.Exception = e;
 
-                DownloadInfos.Status = DownloadStatuses.Faulted;
+                DownloadInfos.Status = ct.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
+                FilesService.DeleteFile(DownloadInfos.FileDirectory, DownloadInfos.FileName);
             }
         }
+
+        #endregion
+
     }
 }

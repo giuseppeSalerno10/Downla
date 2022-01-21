@@ -14,6 +14,8 @@
         public string FileName { get; set; } = string.Empty;
         public string FileDirectory { get; set; } = string.Empty;
 
+        public int WriteIndex { get; set; }
+
         internal Exception Exception 
         { 
             get => exception ?? throw new ArgumentNullException("Exception Is Null");
