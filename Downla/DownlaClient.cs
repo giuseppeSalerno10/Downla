@@ -114,41 +114,43 @@
                 throw DownloadInfos.Exception;
             }
 
+            DownloadInfos.DownloadTask.Dispose();
         }
 
         private void Download(Uri uri, CancellationToken ct, string? authorizationHeader = null)
         {
+
+            #region Setup
+            var writeIndex = 0;
+
+            var completedConnections = new CustomSortedList<ConnectionInfosModel>();
+            var activeConnections = new List<ConnectionInfosModel>();
+
+            var partsAvaible = MaxConnections;
+
+            var fileMetadata = HttpConnectionService.GetMetadata(uri, ct)
+                .Result;
+
+            FilesService.CreateFile(DownloadPath, fileMetadata.Name);
+
+            DownloadInfos.FileName = fileMetadata.Name;
+            DownloadInfos.FileDirectory = DownloadPath;
+            DownloadInfos.FileSize = fileMetadata.Size;
+
+            var neededPart = (fileMetadata.Size % MaxPacketSize == 0) ? (int)(fileMetadata.Size / MaxPacketSize) : (int)(fileMetadata.Size / MaxPacketSize) + 1;
+
+            DownloadInfos.TotalPackets = neededPart;
+
+            Stack<int> indexStack = new Stack<int>();
+            for (int i = DownloadInfos.TotalPackets - 1; i >= 0; i--)
+            {
+                indexStack.Push(i);
+            }
+
+            #endregion Setup
+
             try
             {
-                #region Setup
-                var writeIndex = 0;
-
-                var completedConnections = new CustomSortedList<ConnectionInfosModel>();
-                var activeConnections = new List<ConnectionInfosModel>();
-
-                var partsAvaible = MaxConnections;
-
-                var fileMetadata = HttpConnectionService.GetMetadata(uri, ct)
-                    .Result;
-
-                FilesService.CreateFile(DownloadPath, fileMetadata.Name);
-
-                DownloadInfos.FileName = fileMetadata.Name;
-                DownloadInfos.FileDirectory = DownloadPath;
-                DownloadInfos.FileSize = fileMetadata.Size;
-
-                var neededPart = (fileMetadata.Size % MaxPacketSize == 0) ? (int)(fileMetadata.Size / MaxPacketSize) : (int)(fileMetadata.Size / MaxPacketSize) + 1;
-
-                DownloadInfos.TotalPackets = neededPart;
-
-                Stack<int> indexStack = new Stack<int>();
-                for (int i = DownloadInfos.TotalPackets - 1; i >=0 ; i--)
-                {
-                    indexStack.Push(i);
-                }
-
-                #endregion Setup
-
                 #region Elaboration
 
                 while (DownloadInfos.CurrentSize == 0 || DownloadInfos.CurrentSize < DownloadInfos.FileSize)

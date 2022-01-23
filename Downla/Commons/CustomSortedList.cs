@@ -20,6 +20,10 @@ namespace Downla
             internalList.Insert(index, item);
             
         }
+        public void Clear()
+        {
+            internalList.Clear();
+        }
 
         public void Remove(T item)
         {
@@ -47,6 +51,7 @@ namespace Downla
             }
             return index;
         }
+
 
 
     }
