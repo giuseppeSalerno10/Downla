@@ -105,17 +105,15 @@
         /// Throw an exception if the operation is faulted.
         /// </summary>
         /// <exception cref="Exception">Generic Exception</exception>
-        public void EnsureDownload()
+        public void EnsureDownload(CancellationToken ct)
         {
-            if (DownloadInfos.Status == DownloadStatuses.Downloading)
-            {
-                DownloadInfos.DownloadTask.Wait();
-            }
+            DownloadInfos.DownloadTask.Wait(ct);
 
             if (DownloadInfos.Status == DownloadStatuses.Faulted)
             {
                 throw DownloadInfos.Exception;
             }
+
         }
 
         private void Download(Uri uri, CancellationToken ct, string? authorizationHeader = null)
@@ -155,6 +153,8 @@
 
                 while (DownloadInfos.CurrentSize == 0 || DownloadInfos.CurrentSize < DownloadInfos.FileSize)
                 {
+                    ct.ThrowIfCancellationRequested();
+
                     // New requests creation
                     while (activeConnections.Count < MaxConnections && DownloadInfos.ActiveConnections + DownloadInfos.DownloadedPackets < DownloadInfos.TotalPackets)
                     {
