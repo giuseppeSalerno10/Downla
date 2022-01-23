@@ -1,6 +1,6 @@
 ﻿namespace Downla
 {
-    public class ConnectionInfosModel
+    public class ConnectionInfosModel : IComparable<ConnectionInfosModel>
     {
         private Task<HttpResponseMessage>? task;
 
@@ -10,5 +10,10 @@
             set => task = value; }
 
         public int Index { get; set; }
+
+        public int CompareTo(ConnectionInfosModel? other)
+        {
+            return Index > other?.Index ? 1 : 0;
+        }
     }
 }

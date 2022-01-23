@@ -125,7 +125,7 @@
                 #region Setup
                 var writeIndex = 0;
 
-                var completedConnections = new List<ConnectionInfosModel>();
+                var completedConnections = new CustomSortedList<ConnectionInfosModel>();
                 var activeConnections = new List<ConnectionInfosModel>();
 
                 var partsAvaible = MaxConnections;
@@ -144,7 +144,7 @@
                 DownloadInfos.TotalPackets = neededPart;
 
                 Stack<int> indexStack = new Stack<int>();
-                for (int i = 0; i < DownloadInfos.TotalPackets; i++)
+                for (int i = DownloadInfos.TotalPackets - 1; i >=0 ; i--)
                 {
                     indexStack.Push(i);
                 }
@@ -188,23 +188,23 @@
                                 var connectionResult = connection.Task.Result;
                                 connectionResult.EnsureSuccessStatusCode();
 
-                                completedConnections.Add(connection);
-                                activeConnections.Remove(connection);
+                                completedConnections.Insert(connection);
                                 DownloadInfos.DownloadedPackets++;
-
                             }
                             catch (Exception)
                             {
                                 indexStack.Push(connection.Index);
                             }
+
                             DownloadInfos.ActiveConnections--;
+                            activeConnections.Remove(connection);
                         }
                     }
 
                     // Write on file
                     foreach (var completedConnection in completedConnections.ToArray())
                     {
-                        if(completedConnection.Index == writeIndex)
+                        if (completedConnection.Index == writeIndex)
                         {
                             var bytes = HttpConnectionService.ReadBytes(completedConnection.Task.Result)
                                .Result;
