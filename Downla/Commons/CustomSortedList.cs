@@ -7,8 +7,11 @@ using System.Threading.Tasks;
 
 namespace Downla
 {
-    public class CustomSortedList<T> where T : IComparable<T>
+    public class CustomSortedList<T> :IDisposable where T : IComparable<T>
     {
+
+        public int Count { get => internalList.Count; }
+
         private List<T> internalList = new List<T>();
 
         public CustomSortedList() : base() { }
@@ -20,9 +23,12 @@ namespace Downla
             internalList.Insert(index, item);
             
         }
-        public void Clear()
+
+        public void Add(T item)
         {
-            internalList.Clear();
+
+            internalList.Add(item);
+
         }
 
         public void Remove(T item)
@@ -36,6 +42,12 @@ namespace Downla
         {
             return internalList.ToArray();
         }
+
+        public void Dispose()
+        {
+            internalList.Clear();
+        }
+
 
         private int SearchIndex(T item)
         {
@@ -51,7 +63,6 @@ namespace Downla
             }
             return index;
         }
-
 
 
     }

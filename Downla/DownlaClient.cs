@@ -1,6 +1,6 @@
 ﻿namespace Downla
 {
-    public class DownlaClient
+    public class DownlaClient : IDisposable
     {
         private DownloadInfosModel? downloadInfos;
 
@@ -114,7 +114,7 @@
                 throw DownloadInfos.Exception;
             }
 
-            DownloadInfos.DownloadTask.Dispose();
+            Dispose();
         }
 
         private void Download(Uri uri, CancellationToken ct, string? authorizationHeader = null)
@@ -124,7 +124,7 @@
             var writeIndex = 0;
 
             var completedConnections = new CustomSortedList<ConnectionInfosModel>();
-            var activeConnections = new List<ConnectionInfosModel>();
+            var activeConnections = new CustomSortedList<ConnectionInfosModel>();
 
             var partsAvaible = MaxConnections;
 
@@ -233,6 +233,17 @@
                 DownloadInfos.Status = ct.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
                 FilesService.DeleteFile(DownloadInfos.FileDirectory, DownloadInfos.FileName);
             }
+            finally
+            {
+                completedConnections.Dispose();
+                activeConnections.Dispose();
+                DownloadInfos.ActiveConnections = 0;
+            }
+        }
+
+        public void Dispose()
+        {
+            DownloadInfos.DownloadTask.Dispose();
         }
 
         #endregion
