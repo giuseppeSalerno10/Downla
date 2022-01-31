@@ -19,7 +19,7 @@ namespace Downla
 
             string name;
 
-            if (headers.ContentLength is null) { throw new Exception("Lenght is null"); }
+            if (headers.ContentLength is null) { throw new Exception("File Lenght is null"); }
 
             if (headers.ContentDisposition != null && headers.ContentDisposition.FileName != null)
             {

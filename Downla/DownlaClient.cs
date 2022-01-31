@@ -107,13 +107,15 @@
         /// <exception cref="Exception">Generic Exception</exception>
         public void EnsureDownload(CancellationToken ct)
         {
-            DownloadInfos.DownloadTask.Wait(ct);
-
-            if (DownloadInfos.Status == DownloadStatuses.Faulted)
+            try
             {
-                throw DownloadInfos.Exception;
+                DownloadInfos.DownloadTask.Wait(ct);
             }
-
+            catch (Exception)
+            {
+                DownloadInfos.Status = ct.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
+                throw;
+            }
             Dispose();
         }
 
@@ -230,8 +232,9 @@
             {
                 DownloadInfos.Exception = e;
 
-                DownloadInfos.Status = ct.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
                 FilesService.DeleteFile(DownloadInfos.FileDirectory, DownloadInfos.FileName);
+
+                throw;
             }
             finally
             {
