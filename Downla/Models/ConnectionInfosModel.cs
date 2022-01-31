@@ -13,7 +13,22 @@
 
         public int CompareTo(ConnectionInfosModel? other)
         {
-            return Index > other?.Index ? 1 : 0;
+            int comparisonValue;
+
+            if(Index > other?.Index)
+            {
+                comparisonValue = 1;
+            }
+            else if (Index == other?.Index)
+            {
+                comparisonValue = 0;
+            }
+            else
+            {
+                comparisonValue = -1;
+            }
+
+            return comparisonValue;
         }
     }
 }

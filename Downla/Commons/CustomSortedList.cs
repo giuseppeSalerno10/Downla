@@ -18,7 +18,20 @@ namespace Downla
 
         public void Insert(T item)
         {
-            var index = SearchIndex(item);
+            int index;
+
+            if (internalList.Count == 0 || item.CompareTo(internalList[0]) < 0)
+            {
+                index = 0;
+            }
+            else if (item.CompareTo(internalList[^1]) == 1)
+            {
+                index = internalList.Count;
+            }
+            else
+            {
+                index = ALittleBitDifferentBinarySearch(item);
+            }
 
             internalList.Insert(index, item);
             
@@ -33,7 +46,7 @@ namespace Downla
 
         public void Remove(T item)
         {
-            var index = SearchIndex(item);
+            var index = ALittleBitDifferentBinarySearch(item);
 
             internalList.RemoveAt(index);
         }
@@ -49,19 +62,25 @@ namespace Downla
         }
 
 
-        private int SearchIndex(T item)
+        private int ALittleBitDifferentBinarySearch(T item)
         {
-            //Temporary Solution, O(n), it needs to be O(logn)
+            int upperIndex = internalList.Count - 1;
+            int lowerIndex = 0;
 
-            var index = 0;
-            for (var i = 0; i < internalList.Count; i++)
+            while (lowerIndex != upperIndex)
             {
-                if(item.CompareTo(internalList[i]) > 0)
+                int middleIndex = (upperIndex + lowerIndex) / 2;
+                if(item.CompareTo(internalList[middleIndex]) == 1)
                 {
-                    index = i + 1;
+                    lowerIndex = middleIndex + 1;
+                }
+                else
+                {
+                    upperIndex = middleIndex;
                 }
             }
-            return index;
+
+            return lowerIndex;
         }
 
 
