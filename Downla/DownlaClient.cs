@@ -1,6 +1,6 @@
 ﻿namespace Downla
 {
-    public class DownlaClient : IDisposable
+    public class DownlaClient : IDisposable, IDownlaClient
     {
         private DownloadInfosModel? downloadInfos;
 
@@ -8,10 +8,10 @@
         public int MaxConnections { get; set; } = 10;
         public long MaxPacketSize { get; set; } = 5242880;
 
-        public DownloadInfosModel DownloadInfos 
-        { 
-            get => downloadInfos ?? throw new ArgumentNullException("DownloadInfos is null"); 
-            set => downloadInfos = value; 
+        public DownloadInfosModel DownloadInfos
+        {
+            get => downloadInfos ?? throw new ArgumentNullException("DownloadInfos is null");
+            set => downloadInfos = value;
         }
 
         #region Constructors
@@ -165,9 +165,9 @@
                         var startRange = fileIndex * MaxPacketSize;
                         var endRange = startRange + MaxPacketSize > DownloadInfos.FileSize ? DownloadInfos.FileSize : startRange + MaxPacketSize;
 
-                        Task<HttpResponseMessage> task = authorizationHeader == null ? 
+                        Task<HttpResponseMessage> task = authorizationHeader == null ?
                             Task.Run(() => HttpConnectionService.GetFileRange(uri, startRange, endRange, ct), ct) :
-                            Task.Run(() => HttpConnectionService.GetFileRange(uri, authorizationHeader, startRange, endRange, ct), ct) ;
+                            Task.Run(() => HttpConnectionService.GetFileRange(uri, authorizationHeader, startRange, endRange, ct), ct);
 
                         var connectionInfoToAdd = new ConnectionInfosModel()
                         {
