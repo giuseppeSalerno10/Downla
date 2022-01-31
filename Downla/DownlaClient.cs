@@ -153,7 +153,7 @@
             {
                 #region Elaboration
 
-                while (DownloadInfos.CurrentSize == 0 || DownloadInfos.CurrentSize < DownloadInfos.FileSize)
+                while (DownloadInfos.CurrentSize < DownloadInfos.FileSize)
                 {
                     ct.ThrowIfCancellationRequested();
 
@@ -163,7 +163,7 @@
                         var fileIndex = indexStack.Pop();
 
                         var startRange = fileIndex * MaxPacketSize;
-                        var endRange = startRange + MaxPacketSize > DownloadInfos.FileSize ? DownloadInfos.FileSize : startRange + MaxPacketSize;
+                        var endRange = startRange + MaxPacketSize > DownloadInfos.FileSize ? DownloadInfos.FileSize : startRange + MaxPacketSize - 1;
 
                         Task<HttpResponseMessage> task = authorizationHeader == null ?
                             Task.Run(() => HttpConnectionService.GetFileRange(uri, startRange, endRange, ct), ct) :
