@@ -2,12 +2,16 @@
 {
     public class DownlaClient : IDisposable, IDownlaClient
     {
+        private readonly IHttpConnectionService _connectionService;
+        private readonly IMimeMapperService _mapperService;
+        private readonly IFilesService _filesService;
+
+
         private DownloadInfosModel? downloadInfos;
 
         public string DownloadPath { get; set; } = $"{Environment.CurrentDirectory}\\DownloadedFiles";
         public int MaxConnections { get; set; } = 10;
         public long MaxPacketSize { get; set; } = 5242880;
-
         public DownloadInfosModel DownloadInfos
         {
             get => downloadInfos ?? throw new ArgumentNullException("DownloadInfos is null");
@@ -18,53 +22,14 @@
         /// <summary>
         /// Downla Constructor
         /// </summary>
-        public DownlaClient() { }
-
-        /// <summary>
-        /// Downla Constructor
-        /// </summary>
-        /// <param name="directoryPath">Defines the path of the download directory</param>
-        public DownlaClient(string directoryPath)
+        public DownlaClient(IHttpConnectionService connectionService, IMimeMapperService mapperService, IFilesService filesService)
         {
-            DownloadPath = directoryPath;
+            _connectionService = connectionService;
+            _mapperService = mapperService;
+            _filesService = filesService;
         }
 
-        /// <summary>
-        /// Downla Constructor
-        /// </summary>
-        /// <param name="maxConnections">Defines the maximum number of concurrent HTTP connections</param>
-        /// <param name="directoryPath">Defines the path of the download directory (if null: default value)</param>
-        public DownlaClient(int maxConnections, string? directoryPath = null)
-        {
-            if (maxConnections <= 0) { throw new ArgumentOutOfRangeException(nameof(maxConnections)); }
 
-            MaxConnections = maxConnections;
-
-            if (directoryPath != null)
-            {
-                DownloadPath = directoryPath;
-            }
-        }
-
-        /// <summary>
-        /// Downla Constructor
-        /// </summary>
-        /// <param name="maxConnections">Defines the maximum number of concurrent HTTP connections</param>
-        /// <param name="maxPacketSize">Defines the maximum size of a packet</param>
-        /// <param name="directoryPath">Defines the path of the download directory (if null: default value)</param>
-        public DownlaClient(int maxConnections, long maxPacketSize, string? directoryPath = null)
-        {
-            if (maxConnections <= 0) { throw new ArgumentOutOfRangeException(nameof(maxConnections)); }
-            if (maxPacketSize <= 0) { throw new ArgumentOutOfRangeException(nameof(maxConnections)); }
-
-            MaxConnections = maxConnections;
-            MaxPacketSize = maxPacketSize;
-
-            if (directoryPath != null)
-            {
-                DownloadPath = directoryPath;
-            }
-        }
         #endregion
 
         #region Methods
@@ -75,7 +40,7 @@
         /// <param name="uri"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public DownloadInfosModel DownloadAsync(Uri uri, CancellationToken ct)
+        public DownloadInfosModel StartDownloadAsync(Uri uri, CancellationToken ct)
         {
             DownloadInfos = new DownloadInfosModel() { Status = DownloadStatuses.Downloading };
 
@@ -92,9 +57,11 @@
         /// <param name="ct"></param>
         /// <param name="authorizationHeader"></param>
         /// <returns></returns>
-        public DownloadInfosModel DownloadAsync(Uri uri, string authorizationHeader, CancellationToken ct)
+        public DownloadInfosModel StartDownload(Uri uri, string authorizationHeader, CancellationToken ct)
         {
-            var task = Task.Run(() => Download(uri, ct, authorizationHeader), ct);
+            DownloadInfos = new DownloadInfosModel() { Status = DownloadStatuses.Downloading };
+
+            DownloadInfos.DownloadTask = Task.Run(() => Download(uri, ct, authorizationHeader), ct);
 
             return DownloadInfos;
         }
@@ -105,11 +72,11 @@
         /// Throw an exception if the operation is faulted.
         /// </summary>
         /// <exception cref="Exception">Generic Exception</exception>
-        public void EnsureDownload(CancellationToken ct)
+        public async Task AwaitDownloadCompletation(CancellationToken ct)
         {
             try
             {
-                DownloadInfos.DownloadTask.Wait(ct);
+                await DownloadInfos.DownloadTask;
             }
             catch (Exception)
             {
@@ -118,7 +85,7 @@
             Dispose();
         }
 
-        private void Download(Uri uri, CancellationToken ct, string? authorizationHeader = null)
+        private async Task Download(Uri uri, CancellationToken ct, string? authorizationHeader = null)
         {
 
             var completedConnections = new CustomSortedList<ConnectionInfosModel>();
@@ -131,10 +98,9 @@
 
                 var partsAvaible = MaxConnections;
 
-                var fileMetadata = HttpConnectionService.GetMetadata(uri, ct)
-                    .Result;
+                var fileMetadata = await _connectionService.GetMetadata(uri, ct);
 
-                FilesService.CreateFile(DownloadPath, fileMetadata.Name);
+                _filesService.CreateFile(DownloadPath, fileMetadata.Name);
 
                 DownloadInfos.FileName = fileMetadata.Name;
                 DownloadInfos.FileDirectory = DownloadPath;
@@ -167,8 +133,8 @@
                         var endRange = startRange + MaxPacketSize > DownloadInfos.FileSize ? DownloadInfos.FileSize : startRange + MaxPacketSize - 1;
 
                         Task<HttpResponseMessage> task = authorizationHeader == null ?
-                            Task.Run(() => HttpConnectionService.GetFileRange(uri, startRange, endRange, ct), ct) :
-                            Task.Run(() => HttpConnectionService.GetFileRange(uri, authorizationHeader, startRange, endRange, ct), ct);
+                            Task.Run(() => _connectionService.GetFileRange(uri, startRange, endRange, ct), ct) :
+                            Task.Run(() => _connectionService.GetFileRange(uri, authorizationHeader, startRange, endRange, ct), ct);
 
                         var connectionInfoToAdd = new ConnectionInfosModel()
                         {
@@ -188,7 +154,7 @@
                         {
                             try
                             {
-                                var connectionResult = connection.Task.Result;
+                                var connectionResult = await connection.Task;
                                 connectionResult.EnsureSuccessStatusCode();
 
                                 completedConnections.Insert(connection);
@@ -209,10 +175,9 @@
                     {
                         if (completedConnection.Index == writeIndex)
                         {
-                            var bytes = HttpConnectionService.ReadBytes(completedConnection.Task.Result)
-                               .Result;
+                            var bytes = await _connectionService.ReadBytes(await completedConnection.Task);
 
-                            FilesService.AppendBytes($"{DownloadInfos.FileDirectory}/{DownloadInfos.FileName}", bytes);
+                            _filesService.AppendBytes($"{DownloadInfos.FileDirectory}/{DownloadInfos.FileName}", bytes);
                             DownloadInfos.CurrentSize += bytes.Length;
 
                             writeIndex++;

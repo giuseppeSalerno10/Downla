@@ -1,8 +1,8 @@
 ﻿namespace Downla
 {
-    public class FilesService
+    public class FilesService : IFilesService
     {
-        public static void CreateFile(string path, string fileName)
+        public void CreateFile(string path, string fileName)
         {
             if (!Directory.Exists(path))
             {
@@ -14,11 +14,11 @@
                 stream.Close();
             };
         }
-        public static void DeleteFile(string path, string fileName)
+        public void DeleteFile(string path, string fileName)
         {
             File.Delete($"{path}/{fileName}");
         }
-        public static void AppendBytes(string filePath, byte[] bytes)
+        public void AppendBytes(string filePath, byte[] bytes)
         {
             using var stream = File.Open(filePath, FileMode.Append);
             stream.Write(bytes, 0, bytes.Length);

@@ -2,9 +2,9 @@
 
 namespace Downla
 {
-    public class HttpConnectionService
+    public class HttpConnectionService : IHttpConnectionService
     {
-        public static async Task<MetadataModel> GetMetadata(Uri uri, CancellationToken ct)
+        public async Task<MetadataModel> GetMetadata(Uri uri, CancellationToken ct)
         {
             MetadataModel metadata;
 
@@ -39,7 +39,7 @@ namespace Downla
             return metadata;
         }
 
-        public static HttpResponseMessage GetFileRange(Uri uri, long offset, long count, CancellationToken ct)
+        public async Task<HttpResponseMessage> GetFileRange(Uri uri, long offset, long count, CancellationToken ct)
         {
             var httpClient = new HttpClient();
 
@@ -47,12 +47,12 @@ namespace Downla
 
             getRequest.Headers.Add("Range", $"bytes={offset}-{count}");
 
-            var response = httpClient.SendAsync(getRequest, ct).Result;
+            var response = await httpClient.SendAsync(getRequest, ct);
 
             return response;
         }
 
-        public static HttpResponseMessage GetFileRange(Uri uri, string authorizationHeader, long offset, long count, CancellationToken ct)
+        public async Task<HttpResponseMessage> GetFileRange(Uri uri, string authorizationHeader, long offset, long count, CancellationToken ct)
         {
             var httpClient = new HttpClient();
 
@@ -61,21 +61,17 @@ namespace Downla
             getRequest.Headers.Add("Range", $"bytes={offset}-{count}");
             getRequest.Headers.Add("Authorization", authorizationHeader);
 
-            var response = httpClient.SendAsync(getRequest, ct).Result;
+            var response = await httpClient.SendAsync(getRequest, ct);
 
             return response;
         }
 
-        public static async Task<byte[]> ReadBytes(HttpResponseMessage message)
+        public async Task<byte[]> ReadBytes(HttpResponseMessage message)
         {
             return await message
                 .EnsureSuccessStatusCode()
                 .Content
                 .ReadAsByteArrayAsync();
-        }
-
-        public static void Ensure()
-        {
         }
     }
 }

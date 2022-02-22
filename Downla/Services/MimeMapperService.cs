@@ -1,8 +1,8 @@
 ﻿namespace Downla
 {
-    public class MimeMapperService
+    public class MimeMapperService : IMimeMapperService
     {
-        private static readonly Dictionary<string, string> _mimeMappingDictionary = new()
+        private readonly Dictionary<string, string> _mimeMappingDictionary = new()
         {
             { "x-world/x-3dmf", ".3dmf" },
 
@@ -55,12 +55,12 @@
             { "application/java", ".class" },
         };
 
-        public static string GetExtension(string mimeType)
+        public string GetExtension(string mimeType)
         {
             return _mimeMappingDictionary[mimeType] ?? string.Empty;
         }
 
-        public static string GetMimeType(string extension)
+        public string GetMimeType(string extension)
         {
             string mimeType = string.Empty;
 
