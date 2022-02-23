@@ -33,7 +33,7 @@
         /// <param name="uri"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public DownloadInfosModel StartDownload(Uri uri, CancellationToken ct)
+        public DownloadInfosModel StartDownload(Uri uri, CancellationToken ct = default)
         {
             var downloadInfos = new DownloadInfosModel() { Status = DownloadStatuses.Downloading };
 
@@ -50,7 +50,7 @@
         /// <param name="ct"></param>
         /// <param name="authorizationHeader"></param>
         /// <returns></returns>
-        public DownloadInfosModel StartDownload(Uri uri, string authorizationHeader, CancellationToken ct)
+        public DownloadInfosModel StartDownload(Uri uri, string authorizationHeader, CancellationToken ct = default)
         {
             var downloadInfos = new DownloadInfosModel() { Status = DownloadStatuses.Downloading };
 
@@ -59,7 +59,7 @@
             return downloadInfos;
         }
 
-        private async Task Download(Uri uri, CancellationToken ct, DownloadInfosModel downloadInfos, string? authorizationHeader = null)
+        private async Task Download(Uri uri, CancellationToken ct = default, DownloadInfosModel downloadInfos, string? authorizationHeader = null)
         {
 
             var completedConnections = new CustomSortedList<ConnectionInfosModel>();
