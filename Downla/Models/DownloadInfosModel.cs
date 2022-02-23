@@ -25,5 +25,18 @@
             get => downloadTask ?? throw new ArgumentNullException("DownloadTask Is Null");
             set => downloadTask = value;
         }
+
+
+        /// <summary>
+        /// Await for download completion.
+        /// Throw an exception if the operation is faulted.
+        /// </summary>
+        /// <exception cref="Exception">Generic Exception</exception>
+        public async Task EnsureDownloadCompletation(CancellationToken ct)
+        {
+            await DownloadTask.WaitAsync(ct);
+            
+            DownloadTask.Dispose();
+        }
     }
 }

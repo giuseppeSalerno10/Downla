@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>1.1.6</Version>
+    <Version>1.1.8</Version>
     <Authors>Giuseppe Salerno</Authors>
     <Description>Downla is a client that allows file download with parallel connections.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
