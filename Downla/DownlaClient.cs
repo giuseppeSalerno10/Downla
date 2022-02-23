@@ -40,7 +40,7 @@
         /// <param name="uri"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public DownloadInfosModel StartDownloadAsync(Uri uri, CancellationToken ct)
+        public DownloadInfosModel StartDownload(Uri uri, CancellationToken ct)
         {
             DownloadInfos = new DownloadInfosModel() { Status = DownloadStatuses.Downloading };
 

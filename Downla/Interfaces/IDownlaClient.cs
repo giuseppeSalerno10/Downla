@@ -9,7 +9,7 @@ namespace Downla
         long MaxPacketSize { get; set; }
 
         void Dispose();
-        DownloadInfosModel StartDownloadAsync(Uri uri, CancellationToken ct);
+        DownloadInfosModel StartDownload(Uri uri, CancellationToken ct);
         DownloadInfosModel StartDownload(Uri uri, string authorizationHeader, CancellationToken ct);
         Task AwaitDownloadCompletation(CancellationToken ct);
     }
