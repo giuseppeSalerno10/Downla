@@ -11,6 +11,6 @@ namespace Downla
         void Dispose();
         DownloadInfosModel StartDownload(Uri uri, CancellationToken ct);
         DownloadInfosModel StartDownload(Uri uri, string authorizationHeader, CancellationToken ct);
-        Task AwaitDownloadCompletation(CancellationToken ct);
+        Task EnsureDownloadCompletation(CancellationToken ct);
     }
 }

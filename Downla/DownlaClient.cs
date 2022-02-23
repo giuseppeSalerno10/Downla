@@ -72,17 +72,9 @@
         /// Throw an exception if the operation is faulted.
         /// </summary>
         /// <exception cref="Exception">Generic Exception</exception>
-        public async Task AwaitDownloadCompletation(CancellationToken ct)
+        public Task EnsureDownloadCompletation(CancellationToken ct)
         {
-            try
-            {
-                await DownloadInfos.DownloadTask;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-            Dispose();
+            return Task.Run(() => DownloadInfos.DownloadTask, ct); 
         }
 
         private async Task Download(Uri uri, CancellationToken ct, string? authorizationHeader = null)
