@@ -37,7 +37,7 @@
         {
             var downloadInfos = new DownloadInfosModel() { Status = DownloadStatuses.Downloading };
 
-            downloadInfos.DownloadTask = Task.Run(() => Download(uri, ct, downloadInfos), ct);
+            downloadInfos.DownloadTask = Task.Run(() => Download(uri, downloadInfos, ct), ct);
 
             return downloadInfos;
         }
@@ -54,12 +54,12 @@
         {
             var downloadInfos = new DownloadInfosModel() { Status = DownloadStatuses.Downloading };
 
-            downloadInfos.DownloadTask = Task.Run(() => Download(uri, ct, downloadInfos, authorizationHeader), ct);
+            downloadInfos.DownloadTask = Task.Run(() => Download(uri, downloadInfos, ct, authorizationHeader), ct);
 
             return downloadInfos;
         }
 
-        private async Task Download(Uri uri, CancellationToken ct = default, DownloadInfosModel downloadInfos, string? authorizationHeader = null)
+        private async Task Download(Uri uri, DownloadInfosModel downloadInfos, CancellationToken ct = default, string? authorizationHeader = null)
         {
 
             var completedConnections = new CustomSortedList<ConnectionInfosModel>();
