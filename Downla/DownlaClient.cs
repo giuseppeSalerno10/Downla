@@ -1,10 +1,13 @@
-﻿namespace Downla
+﻿using Microsoft.Extensions.Logging;
+
+namespace Downla
 {
     public class DownlaClient : IDownlaClient
     {
         private readonly IHttpConnectionService _connectionService;
         private readonly IMimeMapperService _mapperService;
         private readonly IFilesService _filesService;
+        private readonly ILogger<DownlaClient> _logger;
 
 
         public string DownloadPath { get; set; } = $"{Environment.CurrentDirectory}\\DownloadedFiles";
@@ -134,9 +137,11 @@
                                 completedConnections.Insert(connection);
                                 downloadInfos.DownloadedPackets++;
                             }
-                            catch (Exception)
+                            catch (Exception e)
                             {
                                 indexStack.Push(connection.Index);
+                                downloadInfos.Exceptions.Add(e);
+                                _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
                             }
 
                             downloadInfos.ActiveConnections--;
@@ -168,8 +173,9 @@
             }
             catch (Exception e)
             {
-                downloadInfos.Exception = e;
+                downloadInfos.Exceptions.Add(e);
                 downloadInfos.Status = ct.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
+                _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
                 throw;
             }
             finally

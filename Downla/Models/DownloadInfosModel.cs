@@ -13,19 +13,13 @@
         public long CurrentSize { get; set; }
         public string FileName { get; set; } = string.Empty;
         public string FileDirectory { get; set; } = string.Empty;
+        public List<Exception> Exceptions { get; } = new List<Exception>();
 
-
-        internal Exception Exception 
-        { 
-            get => exception ?? throw new ArgumentNullException("Exception Is Null");
-            set => exception = value; 
-        }
         internal Task DownloadTask
         {
             get => downloadTask ?? throw new ArgumentNullException("DownloadTask Is Null");
             set => downloadTask = value;
         }
-
 
         /// <summary>
         /// Await for download completion.
