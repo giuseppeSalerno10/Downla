@@ -26,7 +26,7 @@
         /// Throw an exception if the operation is faulted.
         /// </summary>
         /// <exception cref="Exception">Generic Exception</exception>
-        public async Task EnsureDownloadCompletation(CancellationToken ct = default)
+        public async Task EnsureDownloadCompletion(CancellationToken ct = default)
         {
             await DownloadTask.WaitAsync(ct);
             
