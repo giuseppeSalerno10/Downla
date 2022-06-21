@@ -1,5 +1,6 @@
-﻿
-namespace Downla
+﻿using Downla.Models.FileModels;
+
+namespace Downla.Interfaces
 {
     public interface IDownlaClient
     {
@@ -7,7 +8,6 @@ namespace Downla
         int MaxConnections { get; set; }
         long MaxPacketSize { get; set; }
 
-        DownloadInfosModel StartDownload(Uri uri, CancellationToken ct);
-        DownloadInfosModel StartDownload(Uri uri, string authorizationHeader, CancellationToken ct);
+        DownloadInfosModel StartFileDownload(Uri uri, string? authorizationHeader = null, CancellationToken ct = default);
     }
 }

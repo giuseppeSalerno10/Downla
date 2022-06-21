@@ -1,4 +1,6 @@
-﻿namespace Downla
+﻿using Downla.Services.Interfaces;
+
+namespace Downla
 {
     public class FilesService : IFilesService
     {

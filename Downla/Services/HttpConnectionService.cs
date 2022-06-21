@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using Downla.Models.FileModels;
+using Downla.Services.Interfaces;
+using System.Net;
 
 namespace Downla
 {

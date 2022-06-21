@@ -1,4 +1,4 @@
-﻿namespace Downla
+﻿namespace Downla.Models.FileModels
 {
     public class DownloadInfosModel
     {
@@ -29,7 +29,7 @@
         public async Task EnsureDownloadCompletion(CancellationToken ct = default)
         {
             await DownloadTask.WaitAsync(ct);
-            
+
             DownloadTask.Dispose();
         }
     }

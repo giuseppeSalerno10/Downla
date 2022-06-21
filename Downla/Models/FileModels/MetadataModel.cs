@@ -1,4 +1,4 @@
-﻿namespace Downla
+﻿namespace Downla.Models.FileModels
 {
     public class MetadataModel
     {
