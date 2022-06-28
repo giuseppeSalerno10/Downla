@@ -1,0 +1,43 @@
+name: Master Publish
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - '.github/workflows/**'
+
+env:
+  NUGET_TOKEN: ${{ secrets.NUGET_TOKEN }}
+  VERSION: 1.2
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+     - name: Checkout
+       uses: actions/checkout@v2
+     
+     - name: Set outputs
+       id: vars
+       run: |
+         now=$(date "+%s")
+         lastMidnight=$(date -d 'today 00:00:00' "+%s")
+         startYear=$(date +%s --date "2020-1-1")
+         days=$(( ($now-$startYear)/(3600*24) ))
+         seconds=$(( ($now-$lastMidnight)/60 ))
+         build=$days.$seconds
+         
+         echo "::set-output name=BUILD::$build"
+       
+     - name: Check Version and build
+       run: echo ${VERSION}.${{ steps.vars.outputs.BUILD }}
+     
+     - name: Test
+       run: dotnet test --configuration Release /p:Version=${VERSION}.${{ steps.vars.outputs.BUILD }}
+     - name: Build
+       run: dotnet build --configuration Release /p:Version=${VERSION}.${{ steps.vars.outputs.BUILD }}
+     - name: Pack
+       run: dotnet pack --configuration Release /p:Version=${VERSION}.${{ steps.vars.outputs.BUILD }} --no-build --output .
+   
+     - name: Push
+       run: dotnet nuget push Downla.${VERSION}.${{ steps.vars.outputs.BUILD }}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${NUGET_TOKEN}
