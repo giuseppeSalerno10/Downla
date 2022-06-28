@@ -1,4 +1,4 @@
-ame: Development Publish
+name: Development Publish
 
 on:
   push:
