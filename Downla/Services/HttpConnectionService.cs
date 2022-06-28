@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using Downla.Models.FileModels;
+using Downla.Services.Interfaces;
+using System.Net;
 
 namespace Downla
 {
@@ -12,7 +14,7 @@ namespace Downla
 
             var headRequest = new HttpRequestMessage(HttpMethod.Head, uri);
 
-            var headResponse = (await httpClient.SendAsync(headRequest, ct)) ;
+            var headResponse = await httpClient.SendAsync(headRequest, ct) ;
 
             var headers = headResponse.Content.Headers;
 

@@ -1,5 +1,6 @@
-﻿
-namespace Downla
+﻿using Downla.Models.FileModels;
+
+namespace Downla.Services.Interfaces
 {
     public interface IHttpConnectionService
     {

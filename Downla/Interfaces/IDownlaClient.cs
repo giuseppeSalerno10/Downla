@@ -1,13 +1,14 @@
-﻿
-namespace Downla
+﻿using Downla.Models;
+using Downla.Services;
+
+namespace Downla.Interfaces
 {
     public interface IDownlaClient
     {
-        string DownloadPath { get; set; }
         int MaxConnections { get; set; }
         long MaxPacketSize { get; set; }
 
-        DownloadInfosModel StartDownload(Uri uri, CancellationToken ct);
-        DownloadInfosModel StartDownload(Uri uri, string authorizationHeader, CancellationToken ct);
+        DownlaDownload StartFileDownload(Uri uri, string? authorizationHeader = null, CancellationToken ct = default);
+        DownlaDownload StartM3U8Download(Uri uri, string fileName, CancellationToken ct = default);
     }
 }

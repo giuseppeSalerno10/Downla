@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downla", "Downla\Downla.csproj", "{23F47422-77C9-48BD-AEA3-033E1F5AF908}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DownlaInterface", "DownlaInterface\DownlaInterface.csproj", "{524999ED-1ED0-43EB-888F-E225840C367A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{23F47422-77C9-48BD-AEA3-033E1F5AF908}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{23F47422-77C9-48BD-AEA3-033E1F5AF908}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{23F47422-77C9-48BD-AEA3-033E1F5AF908}.Release|Any CPU.Build.0 = Release|Any CPU
+		{524999ED-1ED0-43EB-888F-E225840C367A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{524999ED-1ED0-43EB-888F-E225840C367A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{524999ED-1ED0-43EB-888F-E225840C367A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{524999ED-1ED0-43EB-888F-E225840C367A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
