@@ -1,6 +1,7 @@
 ﻿using Downla.Controller.Interfaces;
 using Downla.Interfaces;
-using Downla.Models.FileModels;
+using Downla.Models;
+using Downla.Services;
 using Downla.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -8,15 +9,16 @@ namespace Downla
 {
     public class DownlaClient : IDownlaClient
     {
-        public string DownloadPath { get; set; } = $"{Environment.CurrentDirectory}\\DownloadedFiles";
         public int MaxConnections { get; set; } = 10;
         public long MaxPacketSize { get; set; } = 5242880;
 
         private readonly IFileController _fileController;
+        private readonly IM3U8Controller _m3U8Controller;
 
-        public DownlaClient(IFileController fileController)
+        public DownlaClient(IFileController fileController, IM3U8Controller m3U8Controller)
         {
             _fileController = fileController;
+            _m3U8Controller = m3U8Controller;
         }
 
         /// <summary>
@@ -25,10 +27,20 @@ namespace Downla
         /// <param name="uri"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public DownloadInfosModel StartFileDownload(Uri uri, string? authorizationHeader = null, CancellationToken ct = default)
+        public DownlaDownload StartFileDownload(Uri uri, string? authorizationHeader = null, CancellationToken ct = default)
         {
-            return _fileController.StartDownload(uri, MaxConnections, DownloadPath, MaxPacketSize, authorizationHeader, ct);
+            return _fileController.StartDownload(uri, MaxConnections, MaxPacketSize, authorizationHeader, ct);
         }
 
+        /// <summary>
+        /// This method will start an asynchronous m3u8 download operation.
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        public DownlaDownload StartM3U8Download(Uri uri, string fileName, CancellationToken ct = default)
+        {
+            return _m3U8Controller.DownloadVideo(uri, MaxConnections, MaxPacketSize, fileName, ct);
+        }
     }
 }

@@ -1,9 +1,9 @@
-﻿using Downla.Models.FileModels;
+﻿using Downla.Models;
 
 namespace Downla.Controller.Interfaces
 {
     public interface IFileController
     {
-        DownloadInfosModel StartDownload(Uri uri, int maxConnections, string downloadPath, long maxPacketSize, string? authorizationHeader = null, CancellationToken ct = default);
+        DownlaDownload StartDownload(Uri uri, int maxConnections, long maxPacketSize, string? authorizationHeader = null, CancellationToken ct = default);
     }
 }

@@ -14,7 +14,7 @@ namespace Downla
 
             var headRequest = new HttpRequestMessage(HttpMethod.Head, uri);
 
-            var headResponse = (await httpClient.SendAsync(headRequest, ct)) ;
+            var headResponse = await httpClient.SendAsync(headRequest, ct) ;
 
             var headers = headResponse.Content.Headers;
 

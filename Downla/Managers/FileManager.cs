@@ -1,4 +1,5 @@
 ﻿using Downla.Managers.Interfaces;
+using Downla.Models;
 using Downla.Models.FileModels;
 using Downla.Services.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -13,10 +14,10 @@ namespace Downla.Managers
     public class FileManager : IFileManager
     {
         private readonly IHttpConnectionService _connectionService;
-        private readonly IFilesService _filesService;
+        private readonly IWritingService _filesService;
         private readonly ILogger<DownlaClient> _logger;
 
-        public FileManager(IHttpConnectionService connectionService, IFilesService filesService, ILogger<DownlaClient> logger)
+        public FileManager(IHttpConnectionService connectionService, IWritingService filesService, ILogger<DownlaClient> logger)
         {
             _connectionService = connectionService;
             _filesService = filesService;
@@ -30,26 +31,24 @@ namespace Downla.Managers
         /// <param name="ct"></param>
         /// <param name="authorizationHeader"></param>
         /// <returns></returns>
-        public DownloadInfosModel StartDownload(
+        public DownlaDownload StartDownload(
             Uri uri,
             int maxConnections,
-            string downloadPath,
             long maxPacketSize,
             string? authorizationHeader,
             CancellationToken ct)
         {
-            var downloadInfos = new DownloadInfosModel() { Status = DownloadStatuses.Downloading };
+            var downloadInfos = new DownlaDownload() { Status = DownloadStatuses.Downloading };
 
-            downloadInfos.DownloadTask = Task.Run(() => Download(uri, downloadInfos, maxConnections, downloadPath, maxPacketSize, ct, authorizationHeader), ct);
+            downloadInfos.Task = Task.Run(() => Download(uri, downloadInfos, maxConnections, maxPacketSize, ct, authorizationHeader), ct);
 
             return downloadInfos;
         }
 
         private async Task Download(
             Uri uri,
-            DownloadInfosModel downloadInfos,
+            DownlaDownload downloadInfos,
             int maxConnections,
-            string downloadPath,
             long maxPacketSize,
             CancellationToken ct,
             string? authorizationHeader)
@@ -67,18 +66,18 @@ namespace Downla.Managers
 
                 var fileMetadata = await _connectionService.GetMetadata(uri, ct);
 
-                _filesService.CreateFile(downloadPath, fileMetadata.Name);
+                _filesService.Create(fileMetadata.Name);
 
-                downloadInfos.FileName = fileMetadata.Name;
-                downloadInfos.FileDirectory = downloadPath;
-                downloadInfos.FileSize = fileMetadata.Size;
+                downloadInfos.Infos.FileName = fileMetadata.Name;
+                downloadInfos.Infos.FileDirectory = _filesService.GeneratePath(fileMetadata.Name);
+                downloadInfos.Infos.FileSize = fileMetadata.Size;
 
                 var neededPart = (fileMetadata.Size % maxPacketSize == 0) ? (int)(fileMetadata.Size / maxPacketSize) : (int)(fileMetadata.Size / maxPacketSize) + 1;
 
-                downloadInfos.TotalPackets = neededPart;
+                downloadInfos.Infos.TotalPackets = neededPart;
 
                 Stack<int> indexStack = new Stack<int>();
-                for (int i = downloadInfos.TotalPackets - 1; i >= 0; i--)
+                for (int i = downloadInfos.Infos.TotalPackets - 1; i >= 0; i--)
                 {
                     indexStack.Push(i);
                 }
@@ -87,17 +86,17 @@ namespace Downla.Managers
 
                 #region Elaboration
 
-                while (downloadInfos.CurrentSize < downloadInfos.FileSize)
+                while (downloadInfos.Infos.CurrentSize < downloadInfos.Infos.FileSize)
                 {
                     ct.ThrowIfCancellationRequested();
 
                     // New requests creation
-                    while (activeConnections.Count < maxConnections && downloadInfos.ActiveConnections + downloadInfos.DownloadedPackets < downloadInfos.TotalPackets)
+                    while (activeConnections.Count < maxConnections && downloadInfos.Infos.ActiveConnections + downloadInfos.Infos.DownloadedPackets < downloadInfos.Infos.TotalPackets)
                     {
                         var fileIndex = indexStack.Pop();
 
                         var startRange = fileIndex * maxPacketSize;
-                        var endRange = startRange + maxPacketSize > downloadInfos.FileSize ? downloadInfos.FileSize : startRange + maxPacketSize - 1;
+                        var endRange = startRange + maxPacketSize > downloadInfos.Infos.FileSize ? downloadInfos.Infos.FileSize : startRange + maxPacketSize - 1;
 
                         Task<HttpResponseMessage> task = authorizationHeader == null ?
                             Task.Run(() => _connectionService.GetFileRange(uri, startRange, endRange, ct), ct) :
@@ -109,7 +108,7 @@ namespace Downla.Managers
                             Index = fileIndex,
                         };
 
-                        downloadInfos.ActiveConnections++;
+                        downloadInfos.Infos.ActiveConnections++;
                         activeConnections.Add(connectionInfoToAdd);
 
                     }
@@ -125,7 +124,7 @@ namespace Downla.Managers
                                 connectionResult.EnsureSuccessStatusCode();
 
                                 completedConnections.Insert(connection);
-                                downloadInfos.DownloadedPackets++;
+                                downloadInfos.Infos.DownloadedPackets++;
                             }
                             catch (Exception e)
                             {
@@ -134,7 +133,7 @@ namespace Downla.Managers
                                 _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
                             }
 
-                            downloadInfos.ActiveConnections--;
+                            downloadInfos.Infos.ActiveConnections--;
                             activeConnections.Remove(connection);
                         }
                     }
@@ -146,8 +145,8 @@ namespace Downla.Managers
                         {
                             var bytes = await _connectionService.ReadBytes(await completedConnection.Task);
 
-                            _filesService.AppendBytes($"{downloadInfos.FileDirectory}/{downloadInfos.FileName}", bytes);
-                            downloadInfos.CurrentSize += bytes.Length;
+                            _filesService.AppendBytes(downloadInfos.Infos.FileName, bytes);
+                            downloadInfos.Infos.CurrentSize += bytes.Length;
 
                             writeIndex++;
 
@@ -172,7 +171,7 @@ namespace Downla.Managers
             {
                 completedConnections.Dispose();
                 activeConnections.Dispose();
-                downloadInfos.ActiveConnections = 0;
+                downloadInfos.Infos.ActiveConnections = 0;
             }
         }
     }

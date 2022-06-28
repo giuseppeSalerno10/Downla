@@ -1,5 +1,6 @@
-﻿using Downla.Managers;
-using Downla.Models.FileModels;
+﻿using Downla.Controller.Interfaces;
+using Downla.Managers;
+using Downla.Models;
 using Downla.Models.M3U8Models;
 using Downla.Services;
 using System;
@@ -18,33 +19,18 @@ namespace Downla.Controller
             _manager = manager;
         }
 
-        public Task<byte[]> DownloadSegment(string url, IM3U8ReaderService? reader = null, CancellationToken ct = default)
+        public Task<byte[]> DownloadSegment(Uri uri, CancellationToken ct = default)
         {
-            if (reader == null)
-            {
-                reader = new M3U8ReaderService();
-            }
-
-            return _manager.DownloadSegment(url, reader, ct);
+            return _manager.DownloadSegment(uri, ct);
 
         }
-        public Task<DownloadInfosModel> DownloadVideo(string url, int maxConnections, string downloadPath, long maxPacketSize, string fileName, IM3U8ReaderService? reader = null, CancellationToken ct = default)
+        public DownlaDownload DownloadVideo(Uri uri, int maxConnections, long maxPacketSize, string fileName, CancellationToken ct = default)
         {
-            if (reader == null)
-            {
-                reader = new M3U8ReaderService();
-            }
-
-            return _manager.DownloadVideo(url, maxConnections, downloadPath, maxPacketSize, fileName, reader, ct);
+            return _manager.DownloadVideo(uri, maxConnections, maxPacketSize, fileName, ct);
         }
-        public Task<M3U8VideoModel> GetVideoMetadata(string url, IM3U8ReaderService? reader = null, CancellationToken ct = default)
+        public Task<DownlaM3U8Video> GetVideoMetadata(Uri uri, CancellationToken ct = default)
         {
-            if (reader == null)
-            {
-                reader = new M3U8ReaderService();
-            }
-
-            return _manager.GetVideoMetadata(url, reader, ct);
+            return _manager.GetVideoMetadata(uri, ct);
         }
     }
 }

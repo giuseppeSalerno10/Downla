@@ -1,13 +1,12 @@
-﻿using Downla.Models.FileModels;
+﻿using Downla.Models;
 
 namespace Downla.Managers.Interfaces
 {
     public interface IFileManager
     {
-        DownloadInfosModel StartDownload(
+        DownlaDownload StartDownload(
             Uri uri, 
             int maxConnections, 
-            string downloadPath, 
             long maxPacketSize, 
             string? authorizationHeader, 
             CancellationToken ct

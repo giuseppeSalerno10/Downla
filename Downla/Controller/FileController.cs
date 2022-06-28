@@ -1,6 +1,6 @@
 ﻿using Downla.Controller.Interfaces;
 using Downla.Managers.Interfaces;
-using Downla.Models.FileModels;
+using Downla.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,15 +17,14 @@ namespace Downla.Controller
             _manager = manager;
         }
 
-        public DownloadInfosModel StartDownload(
+        public DownlaDownload StartDownload(
             Uri uri,
             int maxConnections,
-            string downloadPath,
             long maxPacketSize,
             string? authorizationHeader = null,
             CancellationToken ct = default)
         {
-            return _manager.StartDownload(uri, maxConnections, downloadPath, maxPacketSize, authorizationHeader, ct);
+            return _manager.StartDownload(uri, maxConnections, maxPacketSize, authorizationHeader, ct);
         }
     }
 }
