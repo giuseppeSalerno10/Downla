@@ -6,8 +6,8 @@ namespace Downla.Managers
 {
     public interface IM3U8Manager
     {
-        Task<byte[]> DownloadSegment(Uri uri, CancellationToken ct);
-        DownlaDownload DownloadVideo(Uri uri, int maxConnections, long maxPacketSize, string fileName, CancellationToken ct);
-        Task<DownlaM3U8Video> GetVideoMetadata(Uri uri, CancellationToken ct);
+        Task<byte[]> DownloadSegmentAsync(Uri uri, CancellationToken ct);
+        DownlaDownload StartDownloadVideoAsync(Uri uri, int maxConnections, long maxPacketSize, string fileName, CancellationToken ct);
+        Task<DownlaM3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct);
     }
 }

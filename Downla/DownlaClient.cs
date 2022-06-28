@@ -29,7 +29,7 @@ namespace Downla
         /// <returns></returns>
         public DownlaDownload StartFileDownload(Uri uri, string? authorizationHeader = null, CancellationToken ct = default)
         {
-            return _fileController.StartDownload(uri, MaxConnections, MaxPacketSize, authorizationHeader, ct);
+            return _fileController.StartDownloadAsync(uri, MaxConnections, MaxPacketSize, authorizationHeader, ct);
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace Downla
         /// <returns></returns>
         public DownlaDownload StartM3U8Download(Uri uri, string fileName, CancellationToken ct = default)
         {
-            return _m3U8Controller.DownloadVideo(uri, MaxConnections, MaxPacketSize, fileName, ct);
+            return _m3U8Controller.StartDownloadVideoAsync(uri, MaxConnections, MaxPacketSize, fileName, ct);
         }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using Downla.Models;
+using Downla.Models.FileModels;
 using Downla.Models.M3U8Models;
 using Downla.Services;
 using Downla.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -15,48 +17,28 @@ namespace Downla.Managers
     {
         private readonly IM3U8UtilitiesService _m3U8Reader;
         private readonly IWritingService _writingService;
+        private readonly ILogger<M3U8Manager> _logger;
 
-        public M3U8Manager(IM3U8UtilitiesService m3U8Reader, IWritingService writingService)
+        public M3U8Manager(IM3U8UtilitiesService m3U8Reader, IWritingService writingService, ILogger<M3U8Manager> logger)
         {
             _m3U8Reader = m3U8Reader;
             _writingService = writingService;
+            _logger = logger;
         }
 
-        public DownlaDownload DownloadVideo(
+        public DownlaDownload StartDownloadVideoAsync(
             Uri uri,
             int maxConnections,
             long maxPacketSize,
             string fileName,
             CancellationToken ct)
         {
-            var task = Task.Run(async () =>
-            {
-                _writingService.Create(fileName);
+            DownlaDownload downloadContext = new DownlaDownload() { Status = DownloadStatuses.Pending };
+            downloadContext.Task = Download(downloadContext, uri, maxConnections, fileName, ct);
 
-                List<Task<byte[]>> downloads = new();
-
-                var video = (await GetVideoMetadata(uri, ct))
-                    .Playlists[0];
-
-                foreach (var segment in video.Segments)
-                {
-                    downloads.Add(DownloadSegment(segment.Uri, ct));
-                }
-
-                foreach (var download in downloads)
-                {
-                    var bytes = await download;
-
-                    _writingService.AppendBytes(fileName, bytes);
-                }
-            });
-            return new DownlaDownload()
-            {
-                Task = task,
-            };  
+            return downloadContext; 
         }
-
-        public async Task<DownlaM3U8Video> GetVideoMetadata(Uri uri, CancellationToken ct)
+        public async Task<DownlaM3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct)
         {
             DownlaM3U8Video videoModel = new DownlaM3U8Video() { Uri = uri };
 
@@ -103,7 +85,7 @@ namespace Downla.Managers
             }
             return videoModel;
         }
-        public async Task<byte[]> DownloadSegment(Uri uri, CancellationToken ct)
+        public async Task<byte[]> DownloadSegmentAsync(Uri uri, CancellationToken ct)
         {
             return await _m3U8Reader.GetSegmentBytes(uri, ct);
         }
@@ -162,5 +144,126 @@ namespace Downla.Managers
 
             return playlistModel;
         }
+        private async Task Download(
+            DownlaDownload context,
+            Uri uri,
+            int maxConnections,
+            string fileName,
+            CancellationToken ct)
+        {
+            try
+            {
+                var partsAvaible = maxConnections;
+
+                var video = (await GetVideoMetadataAsync(uri, ct))
+                    .Playlists[0];
+
+                _writingService.Create(fileName);
+
+                context.Infos.FileName = fileName;
+                context.Infos.FileDirectory = _writingService.GeneratePath(fileName);
+
+                context.Infos.FileSize = 0;
+
+                context.Infos.TotalPackets = video.Segments.Length;
+
+                Stack<int> indexStack = new Stack<int>();
+                for (int i = context.Infos.TotalPackets - 1; i >= 0; i--)
+                {
+                    indexStack.Push(i);
+                }
+
+                await ElaborateDownload(context, video, maxConnections, indexStack, ct);
+
+                context.Status = DownloadStatuses.Completed;
+            }
+            catch (Exception e)
+            {
+                context.Exceptions.Add(e);
+                context.Status = ct.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
+                _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
+                throw;
+            }
+            finally
+            {
+                context.Infos.ActiveConnections = 0;
+            }
+        }
+        private async Task ElaborateDownload(
+            DownlaDownload context,
+            DownlaM3U8Playlist video,
+            int maxConnections,
+            Stack<int> indexStack,
+            CancellationToken ct
+            )
+        {
+            var completedConnections = new CustomSortedList<ConnectionInfosModel<byte[]>>();
+            var activeConnections = new CustomSortedList<ConnectionInfosModel<byte[]>>();
+            var writeIndex = 0;
+
+            while (indexStack.Any())
+            {
+                ct.ThrowIfCancellationRequested();
+
+                // New requests creation
+                while (activeConnections.Count < maxConnections && context.Infos.ActiveConnections + context.Infos.DownloadedPackets < context.Infos.TotalPackets)
+                {
+                    var fileIndex = indexStack.Pop();
+
+                    var connectionInfoToAdd = new ConnectionInfosModel<byte[]>()
+                    {
+                        Task = DownloadSegmentAsync(video.Segments[fileIndex].Uri, ct),
+                        Index = fileIndex,
+                    };
+
+                    context.Infos.ActiveConnections++;
+                    activeConnections.Add(connectionInfoToAdd);
+
+                }
+
+                // Get completed connections
+                foreach (var connection in activeConnections.ToArray())
+                {
+                    if (connection.Task.IsCompleted)
+                    {
+                        try
+                        {
+                            var connectionResult = await connection.Task;
+
+                            completedConnections.Insert(connection);
+                            context.Infos.DownloadedPackets++;
+                        }
+                        catch (Exception e)
+                        {
+                            indexStack.Push(connection.Index);
+                            context.Exceptions.Add(e);
+                            _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
+                        }
+
+                        context.Infos.ActiveConnections--;
+                        activeConnections.Remove(connection);
+                    }
+                }
+
+                // Write on file
+                foreach (var completedConnection in completedConnections.ToArray())
+                {
+                    if (completedConnection.Index == writeIndex)
+                    {
+                        var bytes = await completedConnection.Task;
+
+                        _writingService.AppendBytes(context.Infos.FileName, bytes);
+                        context.Infos.CurrentSize += bytes.Length;
+
+                        writeIndex++;
+
+                        completedConnections.Remove(completedConnection);
+                    }
+                }
+
+            }
+        }
+
+
     }
 }

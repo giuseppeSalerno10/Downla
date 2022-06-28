@@ -31,147 +31,148 @@ namespace Downla.Managers
         /// <param name="ct"></param>
         /// <param name="authorizationHeader"></param>
         /// <returns></returns>
-        public DownlaDownload StartDownload(
+        public DownlaDownload StartDownloadAsync(
             Uri uri,
             int maxConnections,
             long maxPacketSize,
             string? authorizationHeader,
             CancellationToken ct)
         {
-            var downloadInfos = new DownlaDownload() { Status = DownloadStatuses.Downloading };
+            var downloadContext = new DownlaDownload() { Status = DownloadStatuses.Downloading };
+            downloadContext.Task = Download(downloadContext, uri, maxConnections, maxPacketSize, ct, authorizationHeader);
 
-            downloadInfos.Task = Task.Run(() => Download(uri, downloadInfos, maxConnections, maxPacketSize, ct, authorizationHeader), ct);
-
-            return downloadInfos;
+            return downloadContext;
         }
 
+
+
         private async Task Download(
+            DownlaDownload context,
             Uri uri,
-            DownlaDownload downloadInfos,
             int maxConnections,
             long maxPacketSize,
             CancellationToken ct,
             string? authorizationHeader)
         {
 
-            var completedConnections = new CustomSortedList<ConnectionInfosModel>();
-            var activeConnections = new CustomSortedList<ConnectionInfosModel>();
-
             try
             {
-                #region Setup
-                var writeIndex = 0;
-
-                var partsAvaible = maxConnections;
+                Stack<int> indexStack = new Stack<int>();
 
                 var fileMetadata = await _connectionService.GetMetadata(uri, ct);
 
                 _filesService.Create(fileMetadata.Name);
 
-                downloadInfos.Infos.FileName = fileMetadata.Name;
-                downloadInfos.Infos.FileDirectory = _filesService.GeneratePath(fileMetadata.Name);
-                downloadInfos.Infos.FileSize = fileMetadata.Size;
+                context.Infos.FileName = fileMetadata.Name;
+                context.Infos.FileDirectory = _filesService.GeneratePath(fileMetadata.Name);
+                context.Infos.FileSize = fileMetadata.Size;
 
                 var neededPart = (fileMetadata.Size % maxPacketSize == 0) ? (int)(fileMetadata.Size / maxPacketSize) : (int)(fileMetadata.Size / maxPacketSize) + 1;
 
-                downloadInfos.Infos.TotalPackets = neededPart;
+                context.Infos.TotalPackets = neededPart;
 
-                Stack<int> indexStack = new Stack<int>();
-                for (int i = downloadInfos.Infos.TotalPackets - 1; i >= 0; i--)
+                for (int i = context.Infos.TotalPackets - 1; i >= 0; i--)
                 {
                     indexStack.Push(i);
                 }
 
-                #endregion Setup
+                await ElaborateDownload(context, uri, authorizationHeader, maxPacketSize, maxConnections, indexStack, ct);
 
-                #region Elaboration
-
-                while (downloadInfos.Infos.CurrentSize < downloadInfos.Infos.FileSize)
-                {
-                    ct.ThrowIfCancellationRequested();
-
-                    // New requests creation
-                    while (activeConnections.Count < maxConnections && downloadInfos.Infos.ActiveConnections + downloadInfos.Infos.DownloadedPackets < downloadInfos.Infos.TotalPackets)
-                    {
-                        var fileIndex = indexStack.Pop();
-
-                        var startRange = fileIndex * maxPacketSize;
-                        var endRange = startRange + maxPacketSize > downloadInfos.Infos.FileSize ? downloadInfos.Infos.FileSize : startRange + maxPacketSize - 1;
-
-                        Task<HttpResponseMessage> task = authorizationHeader == null ?
-                            Task.Run(() => _connectionService.GetFileRange(uri, startRange, endRange, ct), ct) :
-                            Task.Run(() => _connectionService.GetFileRange(uri, authorizationHeader, startRange, endRange, ct), ct);
-
-                        var connectionInfoToAdd = new ConnectionInfosModel()
-                        {
-                            Task = task,
-                            Index = fileIndex,
-                        };
-
-                        downloadInfos.Infos.ActiveConnections++;
-                        activeConnections.Add(connectionInfoToAdd);
-
-                    }
-
-                    // Get completed connections
-                    foreach (var connection in activeConnections.ToArray())
-                    {
-                        if (connection.Task.IsCompleted)
-                        {
-                            try
-                            {
-                                var connectionResult = await connection.Task;
-                                connectionResult.EnsureSuccessStatusCode();
-
-                                completedConnections.Insert(connection);
-                                downloadInfos.Infos.DownloadedPackets++;
-                            }
-                            catch (Exception e)
-                            {
-                                indexStack.Push(connection.Index);
-                                downloadInfos.Exceptions.Add(e);
-                                _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
-                            }
-
-                            downloadInfos.Infos.ActiveConnections--;
-                            activeConnections.Remove(connection);
-                        }
-                    }
-
-                    // Write on file
-                    foreach (var completedConnection in completedConnections.ToArray())
-                    {
-                        if (completedConnection.Index == writeIndex)
-                        {
-                            var bytes = await _connectionService.ReadBytes(await completedConnection.Task);
-
-                            _filesService.AppendBytes(downloadInfos.Infos.FileName, bytes);
-                            downloadInfos.Infos.CurrentSize += bytes.Length;
-
-                            writeIndex++;
-
-                            completedConnections.Remove(completedConnection);
-                        }
-                    }
-
-                }
-
-                #endregion Elaboration
-
-                downloadInfos.Status = DownloadStatuses.Completed;
+                context.Status = DownloadStatuses.Completed;
             }
             catch (Exception e)
             {
-                downloadInfos.Exceptions.Add(e);
-                downloadInfos.Status = ct.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
+                context.Exceptions.Add(e);
+                context.Status = ct.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
                 _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
                 throw;
             }
             finally
             {
-                completedConnections.Dispose();
-                activeConnections.Dispose();
-                downloadInfos.Infos.ActiveConnections = 0;
+                context.Infos.ActiveConnections = 0;
+            }
+        }
+        private async Task ElaborateDownload(
+            DownlaDownload context, 
+            Uri uri, 
+            string? authorizationHeader, 
+            long maxPacketSize, 
+            int maxConnections,
+            Stack<int> indexStack,
+            CancellationToken ct)
+        {
+            var completedConnections = new CustomSortedList<ConnectionInfosModel<HttpResponseMessage>>();
+            var activeConnections = new CustomSortedList<ConnectionInfosModel<HttpResponseMessage>>();
+            int writeIndex = 0;
+
+            while (context.Infos.CurrentSize < context.Infos.FileSize)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                // New requests creation
+                while (activeConnections.Count < maxConnections && context.Infos.ActiveConnections + context.Infos.DownloadedPackets < context.Infos.TotalPackets)
+                {
+                    var fileIndex = indexStack.Pop();
+
+                    var startRange = fileIndex * maxPacketSize;
+                    var endRange = startRange + maxPacketSize > context.Infos.FileSize ? context.Infos.FileSize : startRange + maxPacketSize - 1;
+
+                    Task<HttpResponseMessage> task = authorizationHeader == null ?
+                        Task.Run(() => _connectionService.GetFileRange(uri, startRange, endRange, ct), ct) :
+                        Task.Run(() => _connectionService.GetFileRange(uri, authorizationHeader, startRange, endRange, ct), ct);
+
+                    var connectionInfoToAdd = new ConnectionInfosModel<HttpResponseMessage>()
+                    {
+                        Task = task,
+                        Index = fileIndex,
+                    };
+
+                    context.Infos.ActiveConnections++;
+                    activeConnections.Add(connectionInfoToAdd);
+
+                }
+
+                // Get completed connections
+                foreach (var connection in activeConnections.ToArray())
+                {
+                    if (connection.Task.IsCompleted)
+                    {
+                        try
+                        {
+                            var connectionResult = await connection.Task;
+                            connectionResult.EnsureSuccessStatusCode();
+
+                            completedConnections.Insert(connection);
+                            context.Infos.DownloadedPackets++;
+                        }
+                        catch (Exception e)
+                        {
+                            indexStack.Push(connection.Index);
+                            context.Exceptions.Add(e);
+                            _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
+                        }
+
+                        context.Infos.ActiveConnections--;
+                        activeConnections.Remove(connection);
+                    }
+                }
+
+                // Write on file
+                foreach (var completedConnection in completedConnections.ToArray())
+                {
+                    if (completedConnection.Index == writeIndex)
+                    {
+                        var bytes = await _connectionService.ReadBytes(await completedConnection.Task);
+
+                        _filesService.AppendBytes(context.Infos.FileName, bytes);
+                        context.Infos.CurrentSize += bytes.Length;
+
+                        writeIndex++;
+
+                        completedConnections.Remove(completedConnection);
+                    }
+                }
+
             }
         }
     }

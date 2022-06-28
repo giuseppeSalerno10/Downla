@@ -19,18 +19,18 @@ namespace Downla.Controller
             _manager = manager;
         }
 
-        public Task<byte[]> DownloadSegment(Uri uri, CancellationToken ct = default)
+        public Task<byte[]> DownloadSegmentAsync(Uri uri, CancellationToken ct = default)
         {
-            return _manager.DownloadSegment(uri, ct);
+            return _manager.DownloadSegmentAsync(uri, ct);
 
         }
-        public DownlaDownload DownloadVideo(Uri uri, int maxConnections, long maxPacketSize, string fileName, CancellationToken ct = default)
+        public DownlaDownload StartDownloadVideoAsync(Uri uri, int maxConnections, long maxPacketSize, string fileName, CancellationToken ct = default)
         {
-            return _manager.DownloadVideo(uri, maxConnections, maxPacketSize, fileName, ct);
+            return _manager.StartDownloadVideoAsync(uri, maxConnections, maxPacketSize, fileName, ct);
         }
-        public Task<DownlaM3U8Video> GetVideoMetadata(Uri uri, CancellationToken ct = default)
+        public Task<DownlaM3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct = default)
         {
-            return _manager.GetVideoMetadata(uri, ct);
+            return _manager.GetVideoMetadataAsync(uri, ct);
         }
     }
 }
