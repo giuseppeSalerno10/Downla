@@ -1,12 +1,13 @@
 ﻿namespace Downla.Models
 {
-    public class DownlaDownload
+    public class DownloadMonitor
     {
-        public Task Task { get; set; } = null!;
+        internal Task Task { get; set; } = null!;
+
 
         public DownloadStatuses Status { get; set; }
         public int Percentage { get => Infos.TotalPackets == 0 ? 0 : Infos.DownloadedPackets * 100 / Infos.TotalPackets; }
-        public DownlaDownloadInfos Infos { get; set; } = new();
+        public DownloadMonitorInfos Infos { get; set; } = new();
         public List<Exception> Exceptions { get; } = new();
 
         /// <summary>
@@ -22,7 +23,7 @@
         }
     }
 
-    public class DownlaDownloadInfos
+    public class DownloadMonitorInfos
     {
         public int TotalPackets { get; set; }
         public int ActiveConnections { get; set; }

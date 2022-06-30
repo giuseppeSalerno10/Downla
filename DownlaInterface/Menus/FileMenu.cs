@@ -36,7 +36,7 @@ namespace DownlaInterface.Menus
 
             ShowDownloadInfos(download);
         }
-        public void ShowDownloadInfos(DownlaDownload download)
+        public void ShowDownloadInfos(DownloadMonitor download)
         {
             var startDate = DateTime.Now;
             while (download.Status == Downla.DownloadStatuses.Downloading)

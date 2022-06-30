@@ -26,25 +26,25 @@ namespace Downla.Managers
             _logger = logger;
         }
 
-        public DownlaDownload StartDownloadVideoAsync(
+        public DownloadMonitor StartDownloadVideoAsync(
             Uri uri,
             int maxConnections,
             string fileName,
             int sleepTime,
             CancellationToken ct)
         {
-            DownlaDownload downloadContext = new DownlaDownload() { Status = DownloadStatuses.Pending };
+            DownloadMonitor downloadContext = new DownloadMonitor() { Status = DownloadStatuses.Pending };
             downloadContext.Task = Download(downloadContext, uri, maxConnections, fileName, sleepTime, ct);
 
             return downloadContext; 
         }
-        public async Task<DownlaM3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct)
+        public async Task<M3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct)
         {
-            DownlaM3U8Video videoModel = new DownlaM3U8Video() { Uri = uri };
+            M3U8Video videoModel = new M3U8Video() { Uri = uri };
 
             string[] records = await _m3U8Reader.GetVideoRecords(uri);
 
-            var playlistTasks = new ConcurrentBag<Task<DownlaM3U8Playlist>>();
+            var playlistTasks = new ConcurrentBag<Task<M3U8Playlist>>();
 
             for (int i = 0; i < records.Length && !ct.IsCancellationRequested; i++)
             {
@@ -74,10 +74,10 @@ namespace Downla.Managers
 
             Task.WaitAll(playlistTasks.ToArray(), ct);
 
-            videoModel.Playlists = new DownlaM3U8Playlist[playlistTasks.Count];
+            videoModel.Playlists = new M3U8Playlist[playlistTasks.Count];
             for (int i = 0; i < videoModel.Playlists.Length && !ct.IsCancellationRequested; i++)
             {
-                bool isTaken = playlistTasks.TryTake(out Task<DownlaM3U8Playlist>? tempTask);
+                bool isTaken = playlistTasks.TryTake(out Task<M3U8Playlist>? tempTask);
                 if (isTaken)
                 {
                     videoModel.Playlists[i] = await tempTask!;
@@ -91,13 +91,15 @@ namespace Downla.Managers
         }
 
 
-        private async Task<DownlaM3U8Playlist> GetPlaylistMetadata(Uri uri, CancellationToken ct)
+
+
+        private async Task<M3U8Playlist> GetPlaylistMetadata(Uri uri, CancellationToken ct)
         {
-            DownlaM3U8Playlist playlistModel = new DownlaM3U8Playlist() { Uri = uri };
+            M3U8Playlist playlistModel = new M3U8Playlist() { Uri = uri };
 
             string[] records = await _m3U8Reader.GetPlaylistRecords(uri, ct);
 
-            List<DownlaM3U8PlaylistSegment> playlistSegments = new List<DownlaM3U8PlaylistSegment>();
+            List<M3U8PlaylistSegment> playlistSegments = new List<M3U8PlaylistSegment>();
 
             for (int i = 0; i < records.Length && !ct.IsCancellationRequested; i++)
             {
@@ -130,7 +132,7 @@ namespace Downla.Managers
 
                     case "#EXTINF":
                         var segmentUri = _m3U8Reader.GenerateSegmentUri(uri, records[i+1]);
-                        playlistSegments.Add(new DownlaM3U8PlaylistSegment
+                        playlistSegments.Add(new M3U8PlaylistSegment
                         {
                             Uri = segmentUri
                         });
@@ -145,7 +147,7 @@ namespace Downla.Managers
             return playlistModel;
         }
         private async Task Download(
-            DownlaDownload context,
+            DownloadMonitor context,
             Uri uri,
             int maxConnections,
             string fileName,
@@ -192,8 +194,8 @@ namespace Downla.Managers
             }
         }
         private async Task ElaborateDownload(
-            DownlaDownload context,
-            DownlaM3U8Playlist video,
+            DownloadMonitor context,
+            M3U8Playlist video,
             int maxConnections,
             Stack<int> indexStack,
             int sleepTime,

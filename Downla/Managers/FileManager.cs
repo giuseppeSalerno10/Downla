@@ -31,14 +31,14 @@ namespace Downla.Managers
         /// <param name="ct"></param>
         /// <param name="authorizationHeader"></param>
         /// <returns></returns>
-        public DownlaDownload StartDownloadAsync(
+        public DownloadMonitor StartDownloadAsync(
             Uri uri,
             int maxConnections,
             long maxPacketSize,
             string? authorizationHeader,
             CancellationToken ct)
         {
-            var downloadContext = new DownlaDownload() { Status = DownloadStatuses.Downloading };
+            var downloadContext = new DownloadMonitor() { Status = DownloadStatuses.Pending };
             downloadContext.Task = Download(downloadContext, uri, maxConnections, maxPacketSize, ct, authorizationHeader);
 
             return downloadContext;
@@ -47,7 +47,7 @@ namespace Downla.Managers
 
 
         private async Task Download(
-            DownlaDownload context,
+            DownloadMonitor context,
             Uri uri,
             int maxConnections,
             long maxPacketSize,
@@ -93,7 +93,7 @@ namespace Downla.Managers
             }
         }
         private async Task ElaborateDownload(
-            DownlaDownload context, 
+            DownloadMonitor context, 
             Uri uri, 
             string? authorizationHeader, 
             long maxPacketSize, 

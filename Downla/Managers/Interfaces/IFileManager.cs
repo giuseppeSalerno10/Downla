@@ -4,7 +4,7 @@ namespace Downla.Managers.Interfaces
 {
     public interface IFileManager
     {
-        DownlaDownload StartDownloadAsync(
+        DownloadMonitor StartDownloadAsync(
             Uri uri, 
             int maxConnections, 
             long maxPacketSize, 

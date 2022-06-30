@@ -17,7 +17,7 @@ namespace Downla.Controller
             _manager = manager;
         }
 
-        public DownlaDownload StartDownloadAsync(
+        public DownloadMonitor StartDownloadAsync(
             Uri uri,
             int maxConnections,
             long maxPacketSize,

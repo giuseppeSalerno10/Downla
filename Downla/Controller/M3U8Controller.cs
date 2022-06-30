@@ -24,11 +24,11 @@ namespace Downla.Controller
             return _manager.DownloadSegmentAsync(uri, ct);
 
         }
-        public DownlaDownload StartDownloadVideoAsync(Uri uri, int maxConnections, string fileName, int sleepTime, CancellationToken ct = default)
+        public DownloadMonitor StartDownloadVideoAsync(Uri uri, int maxConnections, string fileName, int sleepTime, CancellationToken ct = default)
         {
             return _manager.StartDownloadVideoAsync(uri, maxConnections, fileName, sleepTime, ct);
         }
-        public Task<DownlaM3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct = default)
+        public Task<M3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct = default)
         {
             return _manager.GetVideoMetadataAsync(uri, ct);
         }
