@@ -36,14 +36,8 @@ namespace Downla
             services.AddSingleton<IHttpConnectionService, HttpConnectionService>();
             services.AddSingleton<IMimeMapperService, MimeMapperService>();
 
-            services.AddSingleton(opt.ReaderService);
-            services.AddSingleton(services =>
-            {
-                IWritingService writingService = (IWritingService) Activator.CreateInstance(opt.WritingService.GetType())!;
-                writingService.WritePath = opt.WritingServicePath;
-
-                return writingService;
-            });
+            services.AddSingleton(typeof(IM3U8UtilitiesService), opt.M3U8UtilitiesService);
+            services.AddSingleton(typeof(IWritingService), opt.WritingService);
 
             return services;
         }
@@ -52,8 +46,17 @@ namespace Downla
         {
             public string WritingServicePath { get; set; } = $"{Environment.CurrentDirectory}\\DownloadedFiles";
 
-            public IM3U8UtilitiesService ReaderService { get; set; } = new M3U8UtilitiesService();
-            public IWritingService WritingService { get; set; } = new WritingService();
+            internal Type M3U8UtilitiesService { get; private set; } = typeof(M3U8UtilitiesService);
+            internal Type WritingService { get; private set; } = typeof(WritingService);
+
+            public void AddWritingService<TWritingService>() where TWritingService : IWritingService
+            {
+                WritingService = typeof(TWritingService);
+            }
+            public void AddM3U8UtilitiesService<TM3U8UtilitiesService>() where TM3U8UtilitiesService : IM3U8UtilitiesService
+            {
+                M3U8UtilitiesService = typeof(TM3U8UtilitiesService);
+            }
         }
 
     }

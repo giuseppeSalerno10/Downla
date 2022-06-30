@@ -29,12 +29,12 @@ namespace Downla.Managers
         public DownlaDownload StartDownloadVideoAsync(
             Uri uri,
             int maxConnections,
-            long maxPacketSize,
             string fileName,
+            int sleepTime,
             CancellationToken ct)
         {
             DownlaDownload downloadContext = new DownlaDownload() { Status = DownloadStatuses.Pending };
-            downloadContext.Task = Download(downloadContext, uri, maxConnections, fileName, ct);
+            downloadContext.Task = Download(downloadContext, uri, maxConnections, fileName, sleepTime, ct);
 
             return downloadContext; 
         }
@@ -75,7 +75,7 @@ namespace Downla.Managers
             Task.WaitAll(playlistTasks.ToArray(), ct);
 
             videoModel.Playlists = new DownlaM3U8Playlist[playlistTasks.Count];
-            for (int i = 0; i < playlistTasks.Count && !ct.IsCancellationRequested; i++)
+            for (int i = 0; i < videoModel.Playlists.Length && !ct.IsCancellationRequested; i++)
             {
                 bool isTaken = playlistTasks.TryTake(out Task<DownlaM3U8Playlist>? tempTask);
                 if (isTaken)
@@ -149,14 +149,16 @@ namespace Downla.Managers
             Uri uri,
             int maxConnections,
             string fileName,
+            int sleepTime,
             CancellationToken ct)
         {
             try
             {
                 var partsAvaible = maxConnections;
 
-                var video = (await GetVideoMetadataAsync(uri, ct))
-                    .Playlists[0];
+                var videoMetadata = await GetVideoMetadataAsync(uri, ct);
+                var video = videoMetadata
+                    .Playlists[^1];
 
                 _writingService.Create(fileName);
 
@@ -173,7 +175,7 @@ namespace Downla.Managers
                     indexStack.Push(i);
                 }
 
-                await ElaborateDownload(context, video, maxConnections, indexStack, ct);
+                await ElaborateDownload(context, video, maxConnections, indexStack, sleepTime ,ct);
 
                 context.Status = DownloadStatuses.Completed;
             }
@@ -194,6 +196,7 @@ namespace Downla.Managers
             DownlaM3U8Playlist video,
             int maxConnections,
             Stack<int> indexStack,
+            int sleepTime,
             CancellationToken ct
             )
         {
@@ -208,6 +211,8 @@ namespace Downla.Managers
                 // New requests creation
                 while (activeConnections.Count < maxConnections && context.Infos.ActiveConnections + context.Infos.DownloadedPackets < context.Infos.TotalPackets)
                 {
+                    Thread.Sleep(sleepTime);
+
                     var fileIndex = indexStack.Pop();
 
                     var connectionInfoToAdd = new ConnectionInfosModel<byte[]>()

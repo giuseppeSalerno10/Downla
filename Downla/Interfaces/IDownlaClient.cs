@@ -9,6 +9,6 @@ namespace Downla.Interfaces
         long MaxPacketSize { get; set; }
 
         DownlaDownload StartFileDownload(Uri uri, string? authorizationHeader = null, CancellationToken ct = default);
-        DownlaDownload StartM3U8Download(Uri uri, string fileName, CancellationToken ct = default);
+        DownlaDownload StartM3U8Download(Uri uri, string fileName, int startConnectionDelay, CancellationToken ct = default);
     }
 }

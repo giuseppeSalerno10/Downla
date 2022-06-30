@@ -9,7 +9,10 @@ IHostBuilder builder = Host.CreateDefaultBuilder();
 IHost host = builder.ConfigureServices(
     services =>
     {
-        services.AddDownlaServices();
+        services.AddDownlaServices(options =>
+        {
+            options.AddWritingService<WritingService>();
+        });
 
         services.AddSingleton<IFileMenuManager, FileMenuManager>();
         services.AddSingleton<IM3U8MenuManager, M3U8MenuManager>();

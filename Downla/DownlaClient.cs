@@ -38,9 +38,9 @@ namespace Downla
         /// <param name="uri"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public DownlaDownload StartM3U8Download(Uri uri, string fileName, CancellationToken ct = default)
+        public DownlaDownload StartM3U8Download(Uri uri, string fileName, int sleepTime, CancellationToken ct = default)
         {
-            return _m3U8Controller.StartDownloadVideoAsync(uri, MaxConnections, MaxPacketSize, fileName, ct);
+            return _m3U8Controller.StartDownloadVideoAsync(uri, MaxConnections, fileName, sleepTime, ct);
         }
     }
 }
