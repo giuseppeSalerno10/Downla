@@ -27,9 +27,9 @@ namespace Downla
         /// <param name="uri"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public DownloadMonitor StartFileDownload(Uri uri, string? authorizationHeader = null, CancellationToken ct = default)
+        public Task StartFileDownloadAsync(Uri uri, out DownloadMonitor downloadMonitor, string? authorizationHeader = null, CancellationToken ct = default)
         {
-            return _fileController.StartDownloadAsync(uri, MaxConnections, MaxPacketSize, authorizationHeader, ct);
+            return _fileController.StartDownloadAsync(uri, MaxConnections, MaxPacketSize, out downloadMonitor, authorizationHeader, ct);
         }
 
         /// <summary>
@@ -38,9 +38,9 @@ namespace Downla
         /// <param name="uri"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public DownloadMonitor StartM3U8Download(Uri uri, string fileName, int sleepTime, CancellationToken ct = default)
+        public Task StartM3U8DownloadAsync(Uri uri, string fileName, int sleepTime, out DownloadMonitor downloadMonitor, CancellationToken ct = default)
         {
-            return _m3U8Controller.StartDownloadVideoAsync(uri, MaxConnections, fileName, sleepTime, ct);
+            return _m3U8Controller.StartDownloadVideoAsync(uri, MaxConnections, fileName, sleepTime, out downloadMonitor, ct);
         }
     }
 }

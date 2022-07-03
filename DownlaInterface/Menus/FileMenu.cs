@@ -32,9 +32,9 @@ namespace DownlaInterface.Menus
             }
             var uri = new Uri(url);
 
-            var download = _downlaClient.StartFileDownload(uri);
+            var downloadTask = _downlaClient.StartFileDownloadAsync(uri, out DownloadMonitor downloadMonitor);
 
-            ShowDownloadInfos(download);
+            ShowDownloadInfos(downloadMonitor);
         }
         public void ShowDownloadInfos(DownloadMonitor download)
         {
@@ -58,9 +58,6 @@ namespace DownlaInterface.Menus
                 Console.WriteLine($"DownloadedPackets: {download.Infos.DownloadedPackets}");
                 Thread.Sleep(500);
             }
-
-            download.EnsureDownloadCompletion()
-                .Wait();
             var time = DateTime.Now.Subtract(startDate).TotalSeconds;
 
             Console.WriteLine($"\nFinal Status: {download.Status}");

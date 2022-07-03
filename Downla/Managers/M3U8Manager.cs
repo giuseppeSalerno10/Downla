@@ -26,17 +26,17 @@ namespace Downla.Managers
             _logger = logger;
         }
 
-        public DownloadMonitor StartDownloadVideoAsync(
+        public Task StartDownloadVideoAsync(
             Uri uri,
             int maxConnections,
             string fileName,
             int sleepTime,
-            CancellationToken ct)
+            out DownloadMonitor downladMonitor,
+            CancellationToken ct
+            )
         {
-            DownloadMonitor downloadContext = new DownloadMonitor() { Status = DownloadStatuses.Pending };
-            downloadContext.Task = Download(downloadContext, uri, maxConnections, fileName, sleepTime, ct);
-
-            return downloadContext; 
+            downladMonitor = new DownloadMonitor() { Status = DownloadStatuses.Pending };
+            return Download(downladMonitor, uri, maxConnections, fileName, sleepTime, ct);
         }
         public async Task<M3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct)
         {

@@ -36,9 +36,9 @@ namespace DownlaInterface.Menus
 
             var fileName = Console.ReadLine()!;
 
-            var download = _downlaClient.StartM3U8Download(uri, fileName, startConnectionDelay: 50);
+            _downlaClient.StartM3U8DownloadAsync(uri, fileName, startConnectionDelay: 50, out DownloadMonitor downloadMonitor);
 
-            ShowDownloadInfos(download);
+            ShowDownloadInfos(downloadMonitor);
         }
         public void ShowDownloadInfos(DownloadMonitor download)
         {
@@ -63,8 +63,6 @@ namespace DownlaInterface.Menus
                 Thread.Sleep(500);
             }
 
-            download.EnsureDownloadCompletion()
-                .Wait();
             var time = DateTime.Now.Subtract(startDate).TotalSeconds;
 
             Console.WriteLine($"\nFinal Status: {download.Status}");

@@ -17,14 +17,15 @@ namespace Downla.Controller
             _manager = manager;
         }
 
-        public DownloadMonitor StartDownloadAsync(
+        public Task StartDownloadAsync(
             Uri uri,
             int maxConnections,
             long maxPacketSize,
+            out DownloadMonitor downloadMonitor,
             string? authorizationHeader = null,
             CancellationToken ct = default)
         {
-            return _manager.StartDownloadAsync(uri, maxConnections, maxPacketSize, authorizationHeader, ct);
+            return _manager.StartDownloadAsync(uri, maxConnections, maxPacketSize, out downloadMonitor, authorizationHeader, ct);
         }
     }
 }

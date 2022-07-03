@@ -4,12 +4,6 @@ namespace Downla.Managers.Interfaces
 {
     public interface IFileManager
     {
-        DownloadMonitor StartDownloadAsync(
-            Uri uri, 
-            int maxConnections, 
-            long maxPacketSize, 
-            string? authorizationHeader, 
-            CancellationToken ct
-            );
+        Task StartDownloadAsync(Uri uri, int maxConnections, long maxPacketSize, out DownloadMonitor downloadMonitor, string? authorizationHeader, CancellationToken ct);
     }
 }

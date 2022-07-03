@@ -2,25 +2,10 @@
 {
     public class DownloadMonitor
     {
-        internal Task Task { get; set; } = null!;
-
-
         public DownloadStatuses Status { get; set; }
         public int Percentage { get => Infos.TotalPackets == 0 ? 0 : Infos.DownloadedPackets * 100 / Infos.TotalPackets; }
         public DownloadMonitorInfos Infos { get; set; } = new();
         public List<Exception> Exceptions { get; } = new();
-
-        /// <summary>
-        /// Await for download completion.
-        /// Throw an exception if the operation is faulted.
-        /// </summary>
-        /// <exception cref="Exception">Generic Exception</exception>
-        public async Task EnsureDownloadCompletion(CancellationToken ct = default)
-        {
-            await Task.WaitAsync(ct);
-
-            Task.Dispose();
-        }
     }
 
     public class DownloadMonitorInfos
