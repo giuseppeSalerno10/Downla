@@ -21,10 +21,11 @@ namespace Downla
         private readonly IM3U8Controller _m3U8Controller;
         private readonly IWritingService _writingService;
 
-        public DownlaClient(IFileController fileController, IM3U8Controller m3U8Controller)
+        public DownlaClient(IFileController fileController, IM3U8Controller m3U8Controller, IWritingService writingService)
         {
             _fileController = fileController;
             _m3U8Controller = m3U8Controller;
+            _writingService = writingService;
         }
 
         /// <summary>
