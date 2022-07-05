@@ -21,11 +21,12 @@ namespace Downla.Controller
             Uri uri,
             int maxConnections,
             long maxPacketSize,
+            string downloadPath,
             out DownloadMonitor downloadMonitor,
             string? authorizationHeader = null,
             CancellationToken ct = default)
         {
-            return _manager.StartDownloadAsync(uri, maxConnections, maxPacketSize, out downloadMonitor, authorizationHeader, ct);
+            return _manager.StartDownloadAsync(uri, maxConnections, maxPacketSize, downloadPath, out downloadMonitor, authorizationHeader, ct);
         }
     }
 }

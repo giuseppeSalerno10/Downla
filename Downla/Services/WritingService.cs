@@ -4,34 +4,31 @@ namespace Downla
 {
     public class WritingService : IWritingService
     {
-        public string WritePath { get; set; } = null!;
-
-        public void Create(string name)
+        public void Create(string path, string name)
         {
+            Directory.CreateDirectory(path);
 
-            Directory.CreateDirectory(WritePath);
-
-            using (var stream = File.Create($"{WritePath}/{name}"))
+            using (var stream = File.Create($"{path}/{name}"))
             {
                 stream.Close();
             };
         }
-        public void Delete(string name)
+        public void Delete(string path, string name)
         {
-            File.Delete($"{WritePath}/{name}");
+            File.Delete($"{path}/{name}");
         }
-        public void AppendBytes(string name, byte[] bytes)
+        public void AppendBytes(string path, string name, byte[] bytes)
         {
-            using var stream = File.Open($"{WritePath}/{name}", FileMode.Append);
+            using var stream = File.Open($"{path}/{name}", FileMode.Append);
             stream.Write(bytes, 0, bytes.Length);
         }
-        public byte[] ReadBytes(string name)
+        public byte[] ReadBytes(string path, string name)
         {
-            return File.ReadAllBytes($"{WritePath}/{name}");
+            return File.ReadAllBytes($"{path}/{name}");
         }
-        public string GeneratePath(string name)
+        public string GeneratePath(string path, string name)
         {
-            return $"{WritePath}/{name}";
+            return $"{path}/{name}";
         }
     }
 }

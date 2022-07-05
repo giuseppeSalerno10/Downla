@@ -31,10 +31,10 @@ namespace Downla.Managers
         /// <param name="ct"></param>
         /// <param name="authorizationHeader"></param>
         /// <returns></returns>
-        public Task StartDownloadAsync(Uri uri,int maxConnections,long maxPacketSize,out DownloadMonitor downloadMonitor,string? authorizationHeader,CancellationToken ct)
+        public Task StartDownloadAsync(Uri uri,int maxConnections,long maxPacketSize, string downloadPath, out DownloadMonitor downloadMonitor,string? authorizationHeader,CancellationToken ct)
         {
             downloadMonitor = new DownloadMonitor() { Status = DownloadStatuses.Pending };
-            return Download(downloadMonitor, uri, maxConnections, maxPacketSize, ct, authorizationHeader);
+            return Download(downloadMonitor, uri, maxConnections, maxPacketSize, downloadPath, ct, authorizationHeader);
         }
 
 
@@ -44,6 +44,7 @@ namespace Downla.Managers
             Uri uri,
             int maxConnections,
             long maxPacketSize,
+            string downloadPath,
             CancellationToken ct,
             string? authorizationHeader)
         {
@@ -54,10 +55,10 @@ namespace Downla.Managers
 
                 var fileMetadata = await _connectionService.GetMetadata(uri, ct);
 
-                _filesService.Create(fileMetadata.Name);
+                _filesService.Create(downloadPath, fileMetadata.Name);
 
                 context.Infos.FileName = fileMetadata.Name;
-                context.Infos.FileDirectory = _filesService.GeneratePath(fileMetadata.Name);
+                context.Infos.FileDirectory = _filesService.GeneratePath(downloadPath, fileMetadata.Name);
                 context.Infos.FileSize = fileMetadata.Size;
 
                 var neededPart = (fileMetadata.Size % maxPacketSize == 0) ? (int)(fileMetadata.Size / maxPacketSize) : (int)(fileMetadata.Size / maxPacketSize) + 1;
@@ -69,7 +70,7 @@ namespace Downla.Managers
                     indexStack.Push(i);
                 }
 
-                await ElaborateDownload(context, uri, authorizationHeader, maxPacketSize, maxConnections, indexStack, ct);
+                await ElaborateDownload(context, uri, authorizationHeader, maxPacketSize, maxConnections, downloadPath, indexStack, ct);
 
                 context.Status = DownloadStatuses.Completed;
             }
@@ -91,6 +92,7 @@ namespace Downla.Managers
             string? authorizationHeader, 
             long maxPacketSize, 
             int maxConnections,
+            string downloadPath,
             Stack<int> indexStack,
             CancellationToken ct)
         {
@@ -156,7 +158,7 @@ namespace Downla.Managers
                     {
                         var bytes = await _connectionService.ReadBytes(await completedConnection.Task);
 
-                        _filesService.AppendBytes(context.Infos.FileName, bytes);
+                        _filesService.AppendBytes(downloadPath, context.Infos.FileName, bytes);
                         context.Infos.CurrentSize += bytes.Length;
 
                         writeIndex++;

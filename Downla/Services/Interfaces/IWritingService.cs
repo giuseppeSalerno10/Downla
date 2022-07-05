@@ -2,12 +2,10 @@
 {
     public interface IWritingService
     {
-        public string WritePath { get; set; }
-
-        void AppendBytes(string fileName, byte[] bytes);
-        void Create(string fileName);
-        void Delete(string fileName);
-        byte[] ReadBytes(string fileName);
-        string GeneratePath(string name);
+        void AppendBytes(string path, string fileName, byte[] bytes);
+        void Create(string path, string fileName);
+        void Delete(string path, string fileName);
+        byte[] ReadBytes(string path, string fileName);
+        string GeneratePath(string path, string name);
     }
 }

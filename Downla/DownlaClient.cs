@@ -9,23 +9,17 @@ namespace Downla
 {
     public class DownlaClient : IDownlaClient
     {
-        public string DownloadPath 
-        { 
-            get => _writingService.WritePath; 
-            set => _writingService.WritePath = value; 
-        }
+        public string DownloadPath { get; set; } = $"{Environment.CurrentDirectory}/Downla Downloads";
         public int MaxConnections { get; set; } = 10;
         public long MaxPacketSize { get; set; } = 5242880;
 
         private readonly IFileController _fileController;
         private readonly IM3U8Controller _m3U8Controller;
-        private readonly IWritingService _writingService;
 
         public DownlaClient(IFileController fileController, IM3U8Controller m3U8Controller, IWritingService writingService)
         {
             _fileController = fileController;
             _m3U8Controller = m3U8Controller;
-            _writingService = writingService;
         }
 
         /// <summary>
@@ -36,7 +30,7 @@ namespace Downla
         /// <returns></returns>
         public Task StartFileDownloadAsync(Uri uri, out DownloadMonitor downloadMonitor, string? authorizationHeader = null, CancellationToken ct = default)
         {
-            return _fileController.StartDownloadAsync(uri, MaxConnections, MaxPacketSize, out downloadMonitor, authorizationHeader, ct);
+            return _fileController.StartDownloadAsync(uri, MaxConnections, MaxPacketSize, DownloadPath,  out downloadMonitor, authorizationHeader, ct);
         }
 
         /// <summary>
@@ -47,7 +41,7 @@ namespace Downla
         /// <returns></returns>
         public Task StartM3U8DownloadAsync(Uri uri, string fileName, int sleepTime, out DownloadMonitor downloadMonitor, CancellationToken ct = default)
         {
-            return _m3U8Controller.StartDownloadVideoAsync(uri, MaxConnections, fileName, sleepTime, out downloadMonitor, ct);
+            return _m3U8Controller.StartDownloadVideoAsync(uri, MaxConnections, DownloadPath, fileName, sleepTime, out downloadMonitor, ct);
         }
     }
 }

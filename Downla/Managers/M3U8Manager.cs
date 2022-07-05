@@ -30,13 +30,14 @@ namespace Downla.Managers
             Uri uri,
             int maxConnections,
             string fileName,
+            string downloadPath,
             int sleepTime,
             out DownloadMonitor downladMonitor,
             CancellationToken ct
             )
         {
             downladMonitor = new DownloadMonitor() { Status = DownloadStatuses.Pending };
-            return Download(downladMonitor, uri, maxConnections, fileName, sleepTime, ct);
+            return Download(downladMonitor, uri, maxConnections, downloadPath, fileName, sleepTime, ct);
         }
         public async Task<M3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct)
         {
@@ -150,6 +151,7 @@ namespace Downla.Managers
             DownloadMonitor context,
             Uri uri,
             int maxConnections,
+            string downloadPath,
             string fileName,
             int sleepTime,
             CancellationToken ct)
@@ -162,10 +164,10 @@ namespace Downla.Managers
                 var video = videoMetadata
                     .Playlists[^1];
 
-                _writingService.Create(fileName);
+                _writingService.Create(downloadPath, fileName);
 
                 context.Infos.FileName = fileName;
-                context.Infos.FileDirectory = _writingService.GeneratePath(fileName);
+                context.Infos.FileDirectory = _writingService.GeneratePath(downloadPath, fileName);
 
                 context.Infos.FileSize = 0;
 
@@ -177,7 +179,7 @@ namespace Downla.Managers
                     indexStack.Push(i);
                 }
 
-                await ElaborateDownload(context, video, maxConnections, indexStack, sleepTime ,ct);
+                await ElaborateDownload(context, video, maxConnections, downloadPath, indexStack, sleepTime ,ct);
 
                 context.Status = DownloadStatuses.Completed;
             }
@@ -197,6 +199,7 @@ namespace Downla.Managers
             DownloadMonitor context,
             M3U8Playlist video,
             int maxConnections,
+            string downloadPath,
             Stack<int> indexStack,
             int sleepTime,
             CancellationToken ct
@@ -259,7 +262,7 @@ namespace Downla.Managers
                     {
                         var bytes = await completedConnection.Task;
 
-                        _writingService.AppendBytes(context.Infos.FileName, bytes);
+                        _writingService.AppendBytes(downloadPath, context.Infos.FileName, bytes);
                         context.Infos.CurrentSize += bytes.Length;
 
                         writeIndex++;
