@@ -9,11 +9,17 @@ namespace Downla
 {
     public class DownlaClient : IDownlaClient
     {
+        public string DownloadPath 
+        { 
+            get => _writingService.WritePath; 
+            set => _writingService.WritePath = value; 
+        }
         public int MaxConnections { get; set; } = 10;
         public long MaxPacketSize { get; set; } = 5242880;
 
         private readonly IFileController _fileController;
         private readonly IM3U8Controller _m3U8Controller;
+        private readonly IWritingService _writingService;
 
         public DownlaClient(IFileController fileController, IM3U8Controller m3U8Controller)
         {
