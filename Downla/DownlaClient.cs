@@ -9,7 +9,7 @@ namespace Downla
 {
     public class DownlaClient : IDownlaClient
     {
-        public string DownloadPath { get; set; } = $"{Environment.CurrentDirectory}/Downla Downloads";
+        public string DownloadPath { get; set; } = $"{Environment.CurrentDirectory}/Downla_Downloads";
         public int MaxConnections { get; set; } = 10;
         public long MaxPacketSize { get; set; } = 5242880;
 

@@ -29,8 +29,8 @@ namespace Downla.Managers
         public Task StartDownloadVideoAsync(
             Uri uri,
             int maxConnections,
-            string fileName,
             string downloadPath,
+            string fileName,
             int sleepTime,
             out DownloadMonitor downladMonitor,
             CancellationToken ct

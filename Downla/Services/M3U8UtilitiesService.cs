@@ -77,11 +77,11 @@ namespace Downla.Services
                 request.Content = new StringContent(serializedBody);
             }
 
-            HttpResponseMessage response = await client.SendAsync(request,ct);
-
+            HttpResponseMessage response = await client.SendAsync(request, ct);
             response.EnsureSuccessStatusCode();
 
             return response;
+
         }
     }
 }
