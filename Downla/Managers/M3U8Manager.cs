@@ -73,7 +73,10 @@ namespace Downla.Managers
                 }
             }
 
-            Task.WaitAll(playlistTasks.ToArray(), ct);
+            foreach (var task in playlistTasks)
+            {
+                await task;
+            }
 
             videoModel.Playlists = new M3U8Playlist[playlistTasks.Count];
             for (int i = 0; i < videoModel.Playlists.Length && !ct.IsCancellationRequested; i++)
@@ -234,25 +237,22 @@ namespace Downla.Managers
                 // Get completed connections
                 foreach (var connection in activeConnections.ToArray())
                 {
-                    if (connection.Task.IsCompleted)
+                    try
                     {
-                        try
-                        {
-                            var connectionResult = await connection.Task;
+                        var connectionResult = await connection.Task;
 
-                            completedConnections.Insert(connection);
-                            context.Infos.DownloadedPackets++;
-                        }
-                        catch (Exception e)
-                        {
-                            indexStack.Push(connection.Index);
-                            context.Exceptions.Add(e);
-                            _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
-                        }
-
-                        context.Infos.ActiveConnections--;
-                        activeConnections.Remove(connection);
+                        completedConnections.Insert(connection);
+                        context.Infos.DownloadedPackets++;
                     }
+                    catch (Exception e)
+                    {
+                        indexStack.Push(connection.Index);
+                        context.Exceptions.Add(e);
+                        _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
+                    }
+
+                    context.Infos.ActiveConnections--;
+                    activeConnections.Remove(connection);
                 }
 
                 // Write on file

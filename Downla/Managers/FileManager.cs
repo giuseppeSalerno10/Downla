@@ -130,25 +130,22 @@ namespace Downla.Managers
                 // Get completed connections
                 foreach (var connection in activeConnections.ToArray())
                 {
-                    if (connection.Task.IsCompleted)
+                    try
                     {
-                        try
-                        {
-                            var connectionResult = await connection.Task;
-                            connectionResult.EnsureSuccessStatusCode();
+                        var connectionResult = await connection.Task;
+                        connectionResult.EnsureSuccessStatusCode();
 
-                            completedConnections.Insert(connection);
-                            context.Infos.DownloadedPackets++;
-                        }
-                        catch (Exception e)
-                        {
-                            indexStack.Push(connection.Index);
-                            context.Exceptions.Add(e);
-                        }
-
-                        context.Infos.ActiveConnections--;
-                        activeConnections.Remove(connection);
+                        completedConnections.Insert(connection);
+                        context.Infos.DownloadedPackets++;
                     }
+                    catch (Exception e)
+                    {
+                        indexStack.Push(connection.Index);
+                        context.Exceptions.Add(e);
+                    }
+
+                    context.Infos.ActiveConnections--;
+                    activeConnections.Remove(connection);
                 }
 
                 // Write on file
