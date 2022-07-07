@@ -37,37 +37,6 @@ namespace DownlaInterface.Menus
             var fileName = Console.ReadLine()!;
 
             _downlaClient.StartM3U8DownloadAsync(uri, fileName, startConnectionDelay: 50, out DownloadMonitor downloadMonitor);
-
-            ShowDownloadInfos(downloadMonitor);
-        }
-        public void ShowDownloadInfos(DownloadMonitor download)
-        {
-            var startDate = DateTime.Now;
-            while (download.Status == Downla.DownloadStatuses.Downloading)
-            {
-                Console.Clear();
-                Console.WriteLine("Download Status");
-
-                Console.WriteLine($"Status: {download.Status}");
-                Console.WriteLine($"Percentage: {download.Percentage}");
-
-                Console.WriteLine("\nFile Infos");
-                Console.WriteLine($"FileName: {download.Infos.FileName}");
-                Console.WriteLine($"FileSize(bytes): {download.Infos.FileSize}");
-                Console.WriteLine($"TotalPackets: {download.Infos.TotalPackets}");
-
-                Console.WriteLine("\nCurrent Infos");
-                Console.WriteLine($"ActiveConnections: {download.Infos.ActiveConnections}");
-                Console.WriteLine($"CurrentSize (bytes): {download.Infos.CurrentSize}");
-                Console.WriteLine($"DownloadedPackets: {download.Infos.DownloadedPackets}");
-                Thread.Sleep(500);
-            }
-
-            var time = DateTime.Now.Subtract(startDate).TotalSeconds;
-
-            Console.WriteLine($"\nFinal Status: {download.Status}");
-            Console.WriteLine($"Time: {time}");
-            Console.WriteLine($"Speed (average): {download.Infos.FileSize / time} B/s");
         }
     }
 }

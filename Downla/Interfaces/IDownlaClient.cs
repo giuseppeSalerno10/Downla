@@ -9,6 +9,9 @@ namespace Downla.Interfaces
         long MaxPacketSize { get; set; }
         string DownloadPath { get; set; }
 
+        event OnDownlaEventDelegate? OnStatusChange;
+        event OnDownlaEventDelegate? OnPacketDownloaded;
+
         Task StartFileDownloadAsync(Uri uri, out DownloadMonitor downloadMonitor, string? authorizationHeader = null, CancellationToken ct = default);
         Task StartM3U8DownloadAsync(Uri uri, string fileName, int startConnectionDelay, out DownloadMonitor downloadMonitor, CancellationToken ct = default);
     }

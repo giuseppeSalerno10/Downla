@@ -1,4 +1,5 @@
 ﻿using Downla.Controller.Interfaces;
+using Downla.DTOs;
 using Downla.Interfaces;
 using Downla.Models;
 using Downla.Services;
@@ -9,6 +10,10 @@ namespace Downla
 {
     public class DownlaClient : IDownlaClient
     {
+        #region Attributes
+        public event OnDownlaEventDelegate? OnStatusChange;
+        public event OnDownlaEventDelegate? OnPacketDownloaded;
+
         public string DownloadPath { get; set; } = $"{Environment.CurrentDirectory}/Downla_Downloads";
         public int MaxConnections { get; set; } = 10;
         public long MaxPacketSize { get; set; } = 5242880;
@@ -21,27 +26,65 @@ namespace Downla
             _fileController = fileController;
             _m3U8Controller = m3U8Controller;
         }
+        #endregion
 
         /// <summary>
         /// This method will start an asynchronous download operation.
         /// </summary>
-        /// <param name="uri"></param>
-        /// <param name="ct"></param>
-        /// <returns></returns>
+        /// <param name="uri">File uri</param>
+        /// <param name="authorizationHeader">Authorization header used in the download</param>
+        /// <param name="ct">Cancellation Token used to cancel the download</param>
+        /// <returns>Download Task</returns>
         public Task StartFileDownloadAsync(Uri uri, out DownloadMonitor downloadMonitor, string? authorizationHeader = null, CancellationToken ct = default)
         {
-            return _fileController.StartDownloadAsync(uri, MaxConnections, MaxPacketSize, DownloadPath,  out downloadMonitor, authorizationHeader, ct);
+            StartFileDownloadAsyncParams par = new()
+            {
+                Uri=uri,
+                MaxConnections = MaxConnections,
+                MaxPacketSize = MaxPacketSize,
+                AuthorizationHeader = authorizationHeader,
+                DownloadPath = DownloadPath,
+                CancellationToken = ct,
+
+                OnStatusChange = OnStatusChange,
+                OnPacketDownloaded = OnPacketDownloaded
+            };
+
+            return _fileController.StartDownloadAsync(
+                par,
+                out downloadMonitor
+                );
         }
 
         /// <summary>
         /// This method will start an asynchronous m3u8 download operation.
         /// </summary>
-        /// <param name="uri"></param>
-        /// <param name="ct"></param>
-        /// <returns></returns>
+        /// <param name="uri">File uri</param>
+        /// <param name="fileName">File's name</param>
+        /// <param name="sleepTime">Delay between two segment download</param>
+        /// <param name="ct">Cancellation Token used to cancel the download</param>
+        /// <returns>Download task</returns>
         public Task StartM3U8DownloadAsync(Uri uri, string fileName, int sleepTime, out DownloadMonitor downloadMonitor, CancellationToken ct = default)
         {
-            return _m3U8Controller.StartDownloadVideoAsync(uri, MaxConnections, DownloadPath, fileName, sleepTime, out downloadMonitor, ct);
+            StartM3U8DownloadAsyncParams par = new()
+            {
+                Uri = uri,
+                MaxConnections = MaxConnections,
+                MaxPacketSize = MaxPacketSize,
+                DownloadPath = DownloadPath,
+                FileName = fileName,
+                SleepTime = sleepTime,
+                CancellationToken = ct,
+
+                OnStatusChange = OnStatusChange,
+                OnPacketDownloaded = OnPacketDownloaded
+            };
+
+            return _m3U8Controller.StartDownloadVideoAsync(
+                par,
+                out downloadMonitor
+                );
         }
+
     }
 }

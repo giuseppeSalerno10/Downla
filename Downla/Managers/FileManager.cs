@@ -1,4 +1,5 @@
-﻿using Downla.Managers.Interfaces;
+﻿using Downla.DTOs;
+using Downla.Managers.Interfaces;
 using Downla.Models;
 using Downla.Models.FileModels;
 using Downla.Services.Interfaces;
@@ -11,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Downla.Managers
 {
-    public class FileManager : IFileManager
+    internal class FileManager : IFileManager
     {
         private readonly IHttpConnectionService _connectionService;
         private readonly IWritingService _filesService;
@@ -31,10 +32,12 @@ namespace Downla.Managers
         /// <param name="ct"></param>
         /// <param name="authorizationHeader"></param>
         /// <returns></returns>
-        public Task StartDownloadAsync(Uri uri,int maxConnections,long maxPacketSize, string downloadPath, out DownloadMonitor downloadMonitor,string? authorizationHeader,CancellationToken ct)
+        public Task StartDownloadAsync(StartFileDownloadAsyncParams downloadParams, out DownloadMonitor downloadMonitor)
         {
             downloadMonitor = new DownloadMonitor() { Status = DownloadStatuses.Pending };
-            return Download(downloadMonitor, uri, maxConnections, maxPacketSize, downloadPath, ct, authorizationHeader);
+            downloadMonitor.OnStatusChange += downloadParams.OnStatusChange;
+
+            return Download(downloadMonitor, downloadParams.Uri, downloadParams.MaxConnections, downloadParams.MaxPacketSize, downloadParams.DownloadPath, downloadParams.AuthorizationHeader, downloadParams.OnPacketDownloaded, downloadParams.CancellationToken);
         }
 
 
@@ -45,8 +48,10 @@ namespace Downla.Managers
             int maxConnections,
             long maxPacketSize,
             string downloadPath,
-            CancellationToken ct,
-            string? authorizationHeader)
+            string? authorizationHeader,
+            OnDownlaEventDelegate? onIterationStartDelegate,
+            CancellationToken ct
+            )
         {
 
             try
@@ -70,7 +75,7 @@ namespace Downla.Managers
                     indexStack.Push(i);
                 }
 
-                await ElaborateDownload(context, uri, authorizationHeader, maxPacketSize, maxConnections, downloadPath, indexStack, ct);
+                await ElaborateDownload(context, uri, authorizationHeader, maxPacketSize, maxConnections, downloadPath, indexStack, onIterationStartDelegate, ct);
 
                 context.Status = DownloadStatuses.Completed;
             }
@@ -86,14 +91,16 @@ namespace Downla.Managers
                 context.Infos.ActiveConnections = 0;
             }
         }
+
         private async Task ElaborateDownload(
-            DownloadMonitor context, 
-            Uri uri, 
-            string? authorizationHeader, 
-            long maxPacketSize, 
+            DownloadMonitor context,
+            Uri uri,
+            string? authorizationHeader,
+            long maxPacketSize,
             int maxConnections,
             string downloadPath,
             Stack<int> indexStack,
+            OnDownlaEventDelegate? onIterationStartDelegate,
             CancellationToken ct)
         {
             var completedConnections = new CustomSortedList<ConnectionInfosModel<HttpResponseMessage>>();
@@ -103,7 +110,6 @@ namespace Downla.Managers
             while (context.Infos.CurrentSize < context.Infos.FileSize)
             {
                 ct.ThrowIfCancellationRequested();
-
                 // New requests creation
                 while (activeConnections.Count < maxConnections && context.Infos.ActiveConnections + context.Infos.DownloadedPackets < context.Infos.TotalPackets)
                 {
@@ -127,25 +133,35 @@ namespace Downla.Managers
 
                 }
 
-                // Get completed connections
+                
+                
                 foreach (var connection in activeConnections.ToArray())
                 {
-                    try
+                    if (connection.Task.IsCompleted)
                     {
-                        var connectionResult = await connection.Task;
-                        connectionResult.EnsureSuccessStatusCode();
+                        var a = connection.Task.AsyncState;
 
-                        completedConnections.Insert(connection);
-                        context.Infos.DownloadedPackets++;
-                    }
-                    catch (Exception e)
-                    {
-                        indexStack.Push(connection.Index);
-                        context.Exceptions.Add(e);
-                    }
+                        try
+                        {
+                            var connectionResult = await connection.Task;
+                            connectionResult.EnsureSuccessStatusCode();
 
-                    context.Infos.ActiveConnections--;
-                    activeConnections.Remove(connection);
+                            completedConnections.Insert(connection);
+                            context.Infos.DownloadedPackets++;
+                            if (onIterationStartDelegate != null) { onIterationStartDelegate.Invoke(context.Status, context.Infos, context.Exceptions); }
+                        }
+                        catch (Exception e)
+                        {
+                            indexStack.Push(connection.Index);
+                            context.Exceptions.Add(e);
+                        }
+                        finally
+                        {
+                            context.Infos.ActiveConnections--;
+                            activeConnections.Remove(connection);
+                        }
+                    }
+                    
                 }
 
                 // Write on file

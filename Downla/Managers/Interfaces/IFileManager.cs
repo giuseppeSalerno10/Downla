@@ -1,9 +1,10 @@
-﻿using Downla.Models;
+﻿using Downla.DTOs;
+using Downla.Models;
 
 namespace Downla.Managers.Interfaces
 {
     public interface IFileManager
     {
-        Task StartDownloadAsync(Uri uri, int maxConnections, long maxPacketSize, string downloadPath, out DownloadMonitor downloadMonitor, string? authorizationHeader, CancellationToken ct);
+        Task StartDownloadAsync(StartFileDownloadAsyncParams downloadParams, out DownloadMonitor downloadMonitor);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Downla.Controller.Interfaces;
+using Downla.DTOs;
 using Downla.Managers.Interfaces;
 using Downla.Models;
 using System;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Downla.Controller
 {
-    public class FileController : IFileController
+    internal class FileController : IFileController
     {
         private readonly IFileManager _manager;
         public FileController(IFileManager manager)
@@ -18,15 +19,11 @@ namespace Downla.Controller
         }
 
         public Task StartDownloadAsync(
-            Uri uri,
-            int maxConnections,
-            long maxPacketSize,
-            string downloadPath,
-            out DownloadMonitor downloadMonitor,
-            string? authorizationHeader = null,
-            CancellationToken ct = default)
+            StartFileDownloadAsyncParams downloadParams,
+            out DownloadMonitor downloadMonitor
+            )
         {
-            return _manager.StartDownloadAsync(uri, maxConnections, maxPacketSize, downloadPath, out downloadMonitor, authorizationHeader, ct);
+            return _manager.StartDownloadAsync(downloadParams, out downloadMonitor);
         }
     }
 }

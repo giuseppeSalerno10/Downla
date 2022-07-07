@@ -1,4 +1,5 @@
 ﻿using Downla.Controller.Interfaces;
+using Downla.DTOs;
 using Downla.Managers;
 using Downla.Models;
 using Downla.Models.M3U8Models;
@@ -11,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Downla.Controller
 {
-    public class M3U8Controller : IM3U8Controller
+    internal class M3U8Controller : IM3U8Controller
     {
         private readonly IM3U8Manager _manager;
         public M3U8Controller(IM3U8Manager manager)
@@ -24,9 +25,9 @@ namespace Downla.Controller
             return _manager.DownloadSegmentAsync(uri, ct);
 
         }
-        public Task StartDownloadVideoAsync(Uri uri, int maxConnections, string downloadPath, string fileName, int sleepTime, out DownloadMonitor downloadMonitor, CancellationToken ct = default)
+        public Task StartDownloadVideoAsync(StartM3U8DownloadAsyncParams downloadParams, out DownloadMonitor downloadMonitor)
         {
-            return _manager.StartDownloadVideoAsync(uri, maxConnections, downloadPath, fileName, sleepTime, out downloadMonitor, ct);
+            return _manager.StartDownloadVideoAsync(downloadParams, out downloadMonitor);
         }
         public Task<M3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct = default)
         {

@@ -1,4 +1,5 @@
-﻿using Downla.Models;
+﻿using Downla.DTOs;
+using Downla.Models;
 using Downla.Models.FileModels;
 using Downla.Models.M3U8Models;
 using Downla.Services;
@@ -13,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace Downla.Managers
 {
-    public class M3U8Manager : IM3U8Manager
+    internal class M3U8Manager : IM3U8Manager
     {
         private readonly IM3U8UtilitiesService _m3U8Reader;
         private readonly IWritingService _writingService;
@@ -26,18 +27,15 @@ namespace Downla.Managers
             _logger = logger;
         }
 
-        public Task StartDownloadVideoAsync(
-            Uri uri,
-            int maxConnections,
-            string downloadPath,
-            string fileName,
-            int sleepTime,
-            out DownloadMonitor downladMonitor,
-            CancellationToken ct
-            )
+        public Task StartDownloadVideoAsync(StartM3U8DownloadAsyncParams downloadParams,out DownloadMonitor downloadMonitor)
         {
-            downladMonitor = new DownloadMonitor() { Status = DownloadStatuses.Pending };
-            return Download(downladMonitor, uri, maxConnections, downloadPath, fileName, sleepTime, ct);
+            downloadMonitor = new DownloadMonitor() 
+            { 
+                Status = DownloadStatuses.Pending,
+            };
+            downloadMonitor.OnStatusChange += downloadParams.OnStatusChange;
+
+            return Download(downloadMonitor, downloadParams.Uri, downloadParams.MaxConnections, downloadParams.DownloadPath, downloadParams.FileName, downloadParams.SleepTime, downloadParams.OnPacketDownloaded, downloadParams.CancellationToken);
         }
         public async Task<M3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct)
         {
@@ -135,7 +133,7 @@ namespace Downla.Managers
 
 
                     case "#EXTINF":
-                        var segmentUri = _m3U8Reader.GenerateSegmentUri(uri, records[i+1]);
+                        var segmentUri = _m3U8Reader.GenerateSegmentUri(uri, records[i + 1]);
                         playlistSegments.Add(new M3U8PlaylistSegment
                         {
                             Uri = segmentUri
@@ -157,6 +155,7 @@ namespace Downla.Managers
             string downloadPath,
             string fileName,
             int sleepTime,
+            OnDownlaEventDelegate? onIterationStartDelegate,
             CancellationToken ct)
         {
             try
@@ -182,7 +181,7 @@ namespace Downla.Managers
                     indexStack.Push(i);
                 }
 
-                await ElaborateDownload(context, video, maxConnections, downloadPath, indexStack, sleepTime ,ct);
+                await ElaborateDownload(context, video, maxConnections, downloadPath, indexStack, sleepTime, onIterationStartDelegate, ct);
 
                 context.Status = DownloadStatuses.Completed;
             }
@@ -205,6 +204,7 @@ namespace Downla.Managers
             string downloadPath,
             Stack<int> indexStack,
             int sleepTime,
+            OnDownlaEventDelegate? onIterationStartDelegate,
             CancellationToken ct
             )
         {
@@ -243,6 +243,7 @@ namespace Downla.Managers
 
                         completedConnections.Insert(connection);
                         context.Infos.DownloadedPackets++;
+                        if (onIterationStartDelegate != null) { onIterationStartDelegate.Invoke(context.Status, context.Infos, context.Exceptions); }
                     }
                     catch (Exception e)
                     {

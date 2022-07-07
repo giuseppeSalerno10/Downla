@@ -16,6 +16,19 @@ namespace DownlaInterface.Menus
         public FileMenuManager(IDownlaClient downlaClient)
         {
             _downlaClient = downlaClient;
+
+            _downlaClient.MaxPacketSize = 50000000;
+
+        }
+
+        private void _downlaClient_OnPacketDownloaded(Downla.DownloadStatuses status, DownloadMonitorInfos infos, IEnumerable<Exception> exceptions)
+        {
+            Console.WriteLine($"PacketDownloaded -> {infos.Percentage}");
+        }
+
+        private void _downlaClient_OnStatusChange(Downla.DownloadStatuses status, DownloadMonitorInfos infos, IEnumerable<Exception> exceptions)
+        {
+            Console.WriteLine($"Status Changed -> {status}");
         }
 
         public void OpenMenu()
@@ -32,37 +45,7 @@ namespace DownlaInterface.Menus
             }
             var uri = new Uri(url);
 
-            var downloadTask = _downlaClient.StartFileDownloadAsync(uri, out DownloadMonitor downloadMonitor);
-
-            ShowDownloadInfos(downloadMonitor);
-        }
-        public void ShowDownloadInfos(DownloadMonitor download)
-        {
-            var startDate = DateTime.Now;
-            while (download.Status == Downla.DownloadStatuses.Downloading)
-            {
-                Console.Clear();
-                Console.WriteLine("Download Status");
-
-                Console.WriteLine($"Status: {download.Status}");
-                Console.WriteLine($"Percentage: {download.Percentage}");
-
-                Console.WriteLine("\nFile Infos");
-                Console.WriteLine($"FileName: {download.Infos.FileName}");
-                Console.WriteLine($"FileSize(bytes): {download.Infos.FileSize}");
-                Console.WriteLine($"TotalPackets: {download.Infos.TotalPackets}");
-
-                Console.WriteLine("\nCurrent Infos");
-                Console.WriteLine($"ActiveConnections: {download.Infos.ActiveConnections}");
-                Console.WriteLine($"CurrentSize (bytes): {download.Infos.CurrentSize}");
-                Console.WriteLine($"DownloadedPackets: {download.Infos.DownloadedPackets}");
-                Thread.Sleep(500);
-            }
-            var time = DateTime.Now.Subtract(startDate).TotalSeconds;
-
-            Console.WriteLine($"\nFinal Status: {download.Status}");
-            Console.WriteLine($"Time: {time}");
-            Console.WriteLine($"Speed (average): {download.Infos.FileSize / time} B/s");
+            _downlaClient.StartFileDownloadAsync(uri, out DownloadMonitor downloadMonitor);
         }
     }
 }
