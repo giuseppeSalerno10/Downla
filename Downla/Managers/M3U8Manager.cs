@@ -208,71 +208,9 @@ namespace Downla.Managers
             CancellationToken ct
             )
         {
-            var completedConnections = new CustomSortedList<ConnectionInfosModel<byte[]>>();
-            var activeConnections = new CustomSortedList<ConnectionInfosModel<byte[]>>();
+            var completedConnections = new CustomSortedList<IndexedItem<byte[]>>();
+            var activeConnections = new CustomSortedList<IndexedItem<byte[]>>();
             var writeIndex = 0;
-
-            while (indexStack.Any())
-            {
-                ct.ThrowIfCancellationRequested();
-
-                // New requests creation
-                while (activeConnections.Count < maxConnections && context.Infos.ActiveConnections + context.Infos.DownloadedPackets < context.Infos.TotalPackets)
-                {
-                    Thread.Sleep(sleepTime);
-
-                    var fileIndex = indexStack.Pop();
-
-                    var connectionInfoToAdd = new ConnectionInfosModel<byte[]>()
-                    {
-                        Task = DownloadSegmentAsync(video.Segments[fileIndex].Uri, ct),
-                        Index = fileIndex,
-                    };
-
-                    context.Infos.ActiveConnections++;
-                    activeConnections.Add(connectionInfoToAdd);
-
-                }
-
-                // Get completed connections
-                foreach (var connection in activeConnections.ToArray())
-                {
-                    try
-                    {
-                        var connectionResult = await connection.Task;
-
-                        completedConnections.Insert(connection);
-                        context.Infos.DownloadedPackets++;
-                        if (onIterationStartDelegate != null) { onIterationStartDelegate.Invoke(context.Status, context.Infos, context.Exceptions); }
-                    }
-                    catch (Exception e)
-                    {
-                        indexStack.Push(connection.Index);
-                        context.Exceptions.Add(e);
-                        _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
-                    }
-
-                    context.Infos.ActiveConnections--;
-                    activeConnections.Remove(connection);
-                }
-
-                // Write on file
-                foreach (var completedConnection in completedConnections.ToArray())
-                {
-                    if (completedConnection.Index == writeIndex)
-                    {
-                        var bytes = await completedConnection.Task;
-
-                        _writingService.AppendBytes(downloadPath, context.Infos.FileName, bytes);
-                        context.Infos.CurrentSize += bytes.Length;
-
-                        writeIndex++;
-
-                        completedConnections.Remove(completedConnection);
-                    }
-                }
-
-            }
         }
 
 

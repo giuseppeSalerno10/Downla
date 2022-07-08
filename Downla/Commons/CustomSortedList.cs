@@ -16,6 +16,16 @@ namespace Downla
 
         public CustomSortedList() : base() { }
 
+        public bool Any()
+        {
+            return internalList.Any();
+        }
+
+        public T ElementAt(int index)
+        {
+            return internalList.ElementAt(index);
+        }
+
         public void Insert(T item)
         {
             int index;
@@ -42,6 +52,11 @@ namespace Downla
 
             internalList.Add(item);
 
+        }
+
+        public void Remove(int index)
+        {
+            internalList.RemoveAt(index);
         }
 
         public void Remove(T item)

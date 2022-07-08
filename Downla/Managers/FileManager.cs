@@ -53,29 +53,49 @@ namespace Downla.Managers
             CancellationToken ct
             )
         {
+            CustomSortedList<IndexedItem<HttpResponseMessage>> completedConnections = new CustomSortedList<IndexedItem<HttpResponseMessage>>();
+            CustomSortedList<IndexedItem<Task>> activeConnections = new CustomSortedList<IndexedItem<Task>>();
+
+            Stack<int> indexStack = new Stack<int>();
 
             try
             {
-                Stack<int> indexStack = new Stack<int>();
-
                 var fileMetadata = await _connectionService.GetMetadata(uri, ct);
 
-                _filesService.Create(downloadPath, fileMetadata.Name);
+                _filesService.Create(downloadPath, fileMetadata.Name, fileMetadata.Size);
 
                 context.Infos.FileName = fileMetadata.Name;
                 context.Infos.FileDirectory = _filesService.GeneratePath(downloadPath, fileMetadata.Name);
                 context.Infos.FileSize = fileMetadata.Size;
 
-                var neededPart = (fileMetadata.Size % maxPacketSize == 0) ? (int)(fileMetadata.Size / maxPacketSize) : (int)(fileMetadata.Size / maxPacketSize) + 1;
+                context.Infos.TotalPackets = (fileMetadata.Size % maxPacketSize == 0) ? (int)(fileMetadata.Size / maxPacketSize) : (int)(fileMetadata.Size / maxPacketSize) + 1;
 
-                context.Infos.TotalPackets = neededPart;
+                SemaphoreSlim downloadSemaphore = new SemaphoreSlim(0, context.Infos.TotalPackets);
+                SemaphoreSlim packetSemaphore = new SemaphoreSlim(0, maxConnections);
+                packetSemaphore.Release(maxConnections);
 
                 for (int i = context.Infos.TotalPackets - 1; i >= 0; i--)
                 {
                     indexStack.Push(i);
                 }
 
-                await ElaborateDownload(context, uri, authorizationHeader, maxPacketSize, maxConnections, downloadPath, indexStack, onIterationStartDelegate, ct);
+                Task writeTask = StartWriteThread(context, downloadPath, maxPacketSize, downloadSemaphore, completedConnections, ct);
+
+                await StartDownloadThreads(
+                    context, 
+                    uri, 
+                    authorizationHeader, 
+                    maxPacketSize, 
+                    indexStack,
+                    onIterationStartDelegate, 
+                    downloadSemaphore, 
+                    packetSemaphore,
+                    activeConnections, 
+                    completedConnections, 
+                    ct
+                    );
+
+                await writeTask;
 
                 context.Status = DownloadStatuses.Completed;
             }
@@ -89,98 +109,177 @@ namespace Downla.Managers
             finally
             {
                 context.Infos.ActiveConnections = 0;
+                completedConnections.Dispose();
+                activeConnections.Dispose();
             }
         }
 
-        private async Task ElaborateDownload(
+
+        private async Task StartWriteThread(DownloadMonitor context, string downloadPath, long packetSize, SemaphoreSlim downloadSemaphore, CustomSortedList<IndexedItem<HttpResponseMessage>> completedConnections, CancellationToken ct) 
+        {
+            long currentSize = 0;
+            long fileSize;
+
+            lock (context)
+            {
+                fileSize = context.Infos.FileSize;
+            }
+
+            while (currentSize < fileSize)
+            {
+                await downloadSemaphore.WaitAsync(ct);
+                IndexedItem<HttpResponseMessage> currentPart;
+
+                lock (completedConnections)
+                {
+                    currentPart = completedConnections.ElementAt(0);
+                }
+
+                var bytes = await _connectionService.ReadBytes(currentPart.Data);
+                lock (context)
+                {
+                    _filesService.WriteBytes(downloadPath, context.Infos.FileName, currentPart.Index * packetSize, bytes);
+                    currentSize = context.Infos.CurrentSize += bytes.Length;
+                }
+
+                lock (completedConnections)
+                {
+                    completedConnections.Remove(currentPart);
+                }
+            }
+        }
+
+        private async Task StartDownloadThreads(
             DownloadMonitor context,
             Uri uri,
             string? authorizationHeader,
             long maxPacketSize,
-            int maxConnections,
-            string downloadPath,
             Stack<int> indexStack,
             OnDownlaEventDelegate? onIterationStartDelegate,
-            CancellationToken ct)
+            SemaphoreSlim downloadSemaphore,
+            SemaphoreSlim packetSemaphore,
+            CustomSortedList<IndexedItem<Task>> activeConnections,
+            CustomSortedList<IndexedItem<HttpResponseMessage>> completedConnections,
+            CancellationToken ct
+            )
         {
-            var completedConnections = new CustomSortedList<ConnectionInfosModel<HttpResponseMessage>>();
-            var activeConnections = new CustomSortedList<ConnectionInfosModel<HttpResponseMessage>>();
-            int writeIndex = 0;
+            int totalPacket;
+            long fileSize;
+            int downloadedPacket = 0;
+            int connections = 0;
 
-            while (context.Infos.CurrentSize < context.Infos.FileSize)
+            long startRange;
+            long endRange;
+
+            int fileIndex;
+
+            lock (context)
+            {
+                fileSize = context.Infos.FileSize;
+                totalPacket = context.Infos.TotalPackets;
+            }
+
+            while (
+                downloadedPacket < totalPacket)
             {
                 ct.ThrowIfCancellationRequested();
-                // New requests creation
-                while (activeConnections.Count < maxConnections && context.Infos.ActiveConnections + context.Infos.DownloadedPackets < context.Infos.TotalPackets)
+
+                if (downloadedPacket + connections < totalPacket)
                 {
-                    var fileIndex = indexStack.Pop();
+                    fileIndex = indexStack.Pop();
+                    startRange = fileIndex * maxPacketSize;
+                    endRange = startRange + maxPacketSize > fileSize ? fileSize : startRange + maxPacketSize - 1;
 
-                    var startRange = fileIndex * maxPacketSize;
-                    var endRange = startRange + maxPacketSize > context.Infos.FileSize ? context.Infos.FileSize : startRange + maxPacketSize - 1;
+                    await packetSemaphore.WaitAsync();
 
-                    Task<HttpResponseMessage> task = authorizationHeader == null ?
-                        Task.Run(() => _connectionService.GetFileRange(uri, startRange, endRange, ct), ct) :
-                        Task.Run(() => _connectionService.GetFileRange(uri, authorizationHeader, startRange, endRange, ct), ct);
+                    var task = _connectionService.GetFileRange(uri, startRange, endRange, ct, authorizationHeader)
+                                                 .ContinueWith(
+                                                    (httpMessageTask, fileIndex) => DownloadThreadDoWork(httpMessageTask, (int)fileIndex!, context, downloadSemaphore, packetSemaphore, activeConnections, completedConnections, indexStack, onIterationStartDelegate),
+                                                    fileIndex,
+                                                    ct
+                                                    );
 
-                    var connectionInfoToAdd = new ConnectionInfosModel<HttpResponseMessage>()
+                    var connectionInfoToAdd = new IndexedItem<Task>()
                     {
-                        Task = task,
+                        Data = task,
                         Index = fileIndex,
                     };
 
-                    context.Infos.ActiveConnections++;
-                    activeConnections.Add(connectionInfoToAdd);
-
-                }
-
-                
-                
-                foreach (var connection in activeConnections.ToArray())
-                {
-                    if (connection.Task.IsCompleted)
+                    lock (activeConnections)
                     {
-                        var a = connection.Task.AsyncState;
-
-                        try
-                        {
-                            var connectionResult = await connection.Task;
-                            connectionResult.EnsureSuccessStatusCode();
-
-                            completedConnections.Insert(connection);
-                            context.Infos.DownloadedPackets++;
-                            if (onIterationStartDelegate != null) { onIterationStartDelegate.Invoke(context.Status, context.Infos, context.Exceptions); }
-                        }
-                        catch (Exception e)
-                        {
-                            indexStack.Push(connection.Index);
-                            context.Exceptions.Add(e);
-                        }
-                        finally
-                        {
-                            context.Infos.ActiveConnections--;
-                            activeConnections.Remove(connection);
-                        }
+                        activeConnections.Add(connectionInfoToAdd);
+                        context.Infos.ActiveConnections++;
                     }
-                    
+
                 }
 
-                // Write on file
-                foreach (var completedConnection in completedConnections.ToArray())
+                lock (context)
                 {
-                    if (completedConnection.Index == writeIndex)
-                    {
-                        var bytes = await _connectionService.ReadBytes(await completedConnection.Task);
-
-                        _filesService.AppendBytes(downloadPath, context.Infos.FileName, bytes);
-                        context.Infos.CurrentSize += bytes.Length;
-
-                        writeIndex++;
-
-                        completedConnections.Remove(completedConnection);
-                    }
+                    downloadedPacket = context.Infos.DownloadedPackets;
+                    connections = context.Infos.ActiveConnections;
                 }
 
+                Thread.Sleep(1000);
             }
+        }
+
+        private async void DownloadThreadDoWork(
+            Task<HttpResponseMessage> httpResponseMessage, 
+            int fileIndex,
+            DownloadMonitor context,
+            SemaphoreSlim downloadSemaphore,
+            SemaphoreSlim packetSemaphore,
+            CustomSortedList<IndexedItem<Task>> activeConnections, 
+            CustomSortedList<IndexedItem<HttpResponseMessage>> completedConnections,
+            Stack<int> indexStack,
+            OnDownlaEventDelegate? onIterationStartDelegate
+            )
+        {
+            try
+            {
+                var response = await httpResponseMessage;
+                response.EnsureSuccessStatusCode();
+
+                var indexedItem = new IndexedItem<HttpResponseMessage>()
+                {
+                    Data = response,
+                    Index = fileIndex!
+                };
+                lock (completedConnections)
+                {
+                    completedConnections.Insert(indexedItem);
+                }
+
+                lock (context)
+                {
+                    context.Infos.DownloadedPackets++;
+                    if (onIterationStartDelegate != null) { onIterationStartDelegate.Invoke(context.Status, context.Infos, context.Exceptions); }
+                }
+
+                downloadSemaphore.Release();
+            }
+            catch
+            {
+                lock (indexStack)
+                {
+                    indexStack.Push(fileIndex!);
+                }
+            }
+            finally
+            {
+                lock (context)
+                {
+                    context.Infos.ActiveConnections--;
+                    activeConnections.Remove(new IndexedItem<Task>()
+                    {
+                        Index = fileIndex!,
+                        Data = httpResponseMessage
+                    });
+                }
+
+                packetSemaphore.Release();
+            }
+            
         }
     }
 }

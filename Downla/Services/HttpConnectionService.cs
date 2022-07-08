@@ -40,27 +40,17 @@ namespace Downla
             return metadata;
         }
 
-        public async Task<HttpResponseMessage> GetFileRange(Uri uri, long offset, long count, CancellationToken ct)
+        public async Task<HttpResponseMessage> GetFileRange(Uri uri, long offset, long count, CancellationToken ct, string? authorizationHeader = null)
         {
             var httpClient = new HttpClient();
 
             var getRequest = new HttpRequestMessage(HttpMethod.Get, uri);
 
             getRequest.Headers.Add("Range", $"bytes={offset}-{count}");
-
-            var response = await httpClient.SendAsync(getRequest, ct);
-
-            return response;
-        }
-
-        public async Task<HttpResponseMessage> GetFileRange(Uri uri, string authorizationHeader, long offset, long count, CancellationToken ct)
-        {
-            var httpClient = new HttpClient();
-
-            var getRequest = new HttpRequestMessage(HttpMethod.Get, uri);
-
-            getRequest.Headers.Add("Range", $"bytes={offset}-{count}");
-            getRequest.Headers.Add("Authorization", authorizationHeader);
+            if(authorizationHeader != null)
+            {
+                getRequest.Headers.Add("Authorization", authorizationHeader);
+            }
 
             var response = await httpClient.SendAsync(getRequest, ct);
 

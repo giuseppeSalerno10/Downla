@@ -17,8 +17,10 @@ namespace DownlaInterface.Menus
         {
             _downlaClient = downlaClient;
 
-            _downlaClient.MaxPacketSize = 50000000;
+            _downlaClient.MaxPacketSize = 500000000;
 
+            _downlaClient.OnPacketDownloaded += _downlaClient_OnPacketDownloaded;
+            _downlaClient.OnStatusChange += _downlaClient_OnStatusChange;
         }
 
         private void _downlaClient_OnPacketDownloaded(Downla.DownloadStatuses status, DownloadMonitorInfos infos, IEnumerable<Exception> exceptions)

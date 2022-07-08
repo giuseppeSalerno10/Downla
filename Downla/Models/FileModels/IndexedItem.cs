@@ -1,12 +1,14 @@
 ﻿namespace Downla.Models.FileModels
 {
-    public class ConnectionInfosModel<TModel> : IComparable<ConnectionInfosModel<TModel>>
+    public class IndexedItem<TModel> : IndexedItem
     {
-        public Task<TModel> Task { get; set; } = null!;
-
+        public TModel Data { get; set; } = default!;
+    }
+    public class IndexedItem : IComparable<IndexedItem>
+    {
         public int Index { get; set; }
 
-        public int CompareTo(ConnectionInfosModel<TModel>? other)
+        public int CompareTo(IndexedItem? other)
         {
             int comparisonValue;
 
