@@ -18,12 +18,11 @@ namespace Downla.Controller
             _manager = manager;
         }
 
-        public Task StartDownloadAsync(
-            StartFileDownloadAsyncParams downloadParams,
-            out DownloadMonitor downloadMonitor
+        public Task<DownloadMonitor> StartDownloadAsync(
+            StartFileDownloadAsyncParams downloadParams
             )
         {
-            return _manager.StartDownloadAsync(downloadParams, out downloadMonitor);
+            return _manager.StartDownloadAsync(downloadParams);
         }
     }
 }

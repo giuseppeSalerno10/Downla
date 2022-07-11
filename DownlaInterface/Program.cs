@@ -1,4 +1,6 @@
 ﻿using Downla;
+using Downla.Workers.File;
+using Downla.Workers.File.Interfaces;
 using DownlaInterface;
 using DownlaInterface.Menus;
 using DownlaInterface.Menus.Interfaces;
@@ -17,11 +19,13 @@ IHost host = builder.ConfigureServices(
         services.AddSingleton<IFileMenuManager, FileMenuManager>();
         services.AddSingleton<IM3U8MenuManager, M3U8MenuManager>();
 
+        services.AddSingleton<IDownloaderFileWorker, DownloaderFileWorker>();
+        services.AddSingleton<IWriterFileWorker, WriterFileWorker>();
         services.AddSingleton<App>();
     })
     .Build();
 
 host.RunAsync();
 
-host.Services.GetRequiredService<App>()
+await host.Services.GetRequiredService<App>()
     .Start();

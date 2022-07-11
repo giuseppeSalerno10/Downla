@@ -17,7 +17,7 @@ namespace DownlaInterface.Menus
         {
             _downlaClient = downlaClient;
 
-            _downlaClient.MaxPacketSize = 500000000;
+            _downlaClient.MaxPacketSize = 50000000;
 
             _downlaClient.OnPacketDownloaded += _downlaClient_OnPacketDownloaded;
             _downlaClient.OnStatusChange += _downlaClient_OnStatusChange;
@@ -33,7 +33,7 @@ namespace DownlaInterface.Menus
             Console.WriteLine($"Status Changed -> {status}");
         }
 
-        public void OpenMenu()
+        public async Task OpenMenu()
         {
             Console.Clear();
             Console.WriteLine("File Menu");
@@ -47,7 +47,8 @@ namespace DownlaInterface.Menus
             }
             var uri = new Uri(url);
 
-            _downlaClient.StartFileDownloadAsync(uri, out DownloadMonitor downloadMonitor);
+            var download = await _downlaClient.StartFileDownloadAsync(uri);
+            await download.EnsureDownload();
         }
     }
 }

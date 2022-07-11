@@ -18,7 +18,7 @@ namespace DownlaInterface
             _m3u8MenuManager = m3u8MenuManager;
         }
 
-        public void Start()
+        public async Task Start()
         {
             while (true)
             {
@@ -29,7 +29,7 @@ namespace DownlaInterface
                     switch (input)
                     {
                         case 0:
-                            _fileMenuManager.OpenMenu();
+                            await _fileMenuManager.OpenMenu();
                             break;
                         case 1:
                             _m3u8MenuManager.OpenMenu();

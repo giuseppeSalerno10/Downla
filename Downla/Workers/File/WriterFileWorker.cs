@@ -1,0 +1,104 @@
+﻿using Downla.Models;
+using Downla.Models.FileModels;
+using Downla.Services.Interfaces;
+using Downla.Workers.File.Interfaces;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Downla.Workers.File
+{
+    public class WriterFileWorker : IWriterFileWorker
+    {
+        private readonly IWritingService _writingService;
+        private readonly ILogger<WriterFileWorker> _logger;
+        private readonly IHttpConnectionService _connectionService;
+
+        public WriterFileWorker(IWritingService writingService, ILogger<WriterFileWorker> logger, IHttpConnectionService connectionService)
+        {
+            _writingService = writingService;
+            _logger = logger;
+            _connectionService = connectionService;
+        }
+
+        public async Task StartThread(
+            DownloadMonitor context,
+            SemaphoreSlim downloadSemaphore,
+            CustomSortedList<IndexedItem<HttpResponseMessage>> completedConnections,
+            CancellationTokenSource downlaCts
+            )
+        {
+
+            long currentSize = 0;
+            long fileSize;
+            long packetSize;
+
+            string fileName;
+            string folderPath;
+
+            lock (context)
+            {
+                folderPath = context.Infos.FileDirectory;
+                fileName = context.Infos.FileName;
+                fileSize = context.Infos.FileSize;
+                packetSize = context.Infos.PacketSize;
+            }
+
+            try
+            {
+                IndexedItem<HttpResponseMessage> currentPart;
+
+                while (!downlaCts.IsCancellationRequested && currentSize < fileSize)
+                {
+                    await downloadSemaphore.WaitAsync(downlaCts.Token);
+
+                    lock (completedConnections)
+                    {
+                        currentPart = completedConnections.ElementAt(0);
+                        completedConnections.Remove(0);
+                    }
+
+                    var bytes = await _connectionService.ReadBytes(currentPart.Data);
+
+                    //_writingService.WriteBytes(folderPath, fileName, currentPart.Index * packetSize, ref bytes);
+
+                    lock (context)
+                    {
+                        currentSize = context.Infos.CurrentSize += bytes.Length;
+                    }
+
+                }
+
+                _writingService.Merge(folderPath, fileName);
+
+                lock (context)
+                {
+                    context.Status = DownloadStatuses.Completed;
+                }
+                
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"[{DateTime.Now}] Downla Writing Error - Message: {e.Message}");
+
+                downlaCts.Cancel();
+
+                lock (context)
+                {
+                    context.Exceptions.Add(e);
+                    if(context.Status != DownloadStatuses.Faulted) { context.Status = DownloadStatuses.Faulted; }
+                }
+            }
+            finally
+            {
+                _writingService.ClearTemp(folderPath, fileName);
+                completedConnections.Dispose();
+
+            }
+        }
+    }
+}

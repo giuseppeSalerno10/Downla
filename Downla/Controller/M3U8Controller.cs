@@ -25,9 +25,9 @@ namespace Downla.Controller
             return _manager.DownloadSegmentAsync(uri, ct);
 
         }
-        public Task StartDownloadVideoAsync(StartM3U8DownloadAsyncParams downloadParams, out DownloadMonitor downloadMonitor)
+        public Task<DownloadMonitor> StartDownloadVideoAsync(StartM3U8DownloadAsyncParams downloadParams)
         {
-            return _manager.StartDownloadVideoAsync(downloadParams, out downloadMonitor);
+            return _manager.StartDownloadVideoAsync(downloadParams);
         }
         public Task<M3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct = default)
         {

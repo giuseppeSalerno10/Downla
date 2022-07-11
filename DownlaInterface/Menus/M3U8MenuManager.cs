@@ -36,7 +36,7 @@ namespace DownlaInterface.Menus
 
             var fileName = Console.ReadLine()!;
 
-            _downlaClient.StartM3U8DownloadAsync(uri, fileName, startConnectionDelay: 50, out DownloadMonitor downloadMonitor);
+            _downlaClient.StartM3U8DownloadAsync(uri, fileName, startConnectionDelay: 50);
         }
     }
 }

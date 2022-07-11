@@ -27,15 +27,10 @@ namespace Downla.Managers
             _logger = logger;
         }
 
-        public Task StartDownloadVideoAsync(StartM3U8DownloadAsyncParams downloadParams,out DownloadMonitor downloadMonitor)
+        public Task<DownloadMonitor> StartDownloadVideoAsync(StartM3U8DownloadAsyncParams downloadParams)
         {
-            downloadMonitor = new DownloadMonitor() 
-            { 
-                Status = DownloadStatuses.Pending,
-            };
-            downloadMonitor.OnStatusChange += downloadParams.OnStatusChange;
-
-            return Download(downloadMonitor, downloadParams.Uri, downloadParams.MaxConnections, downloadParams.DownloadPath, downloadParams.FileName, downloadParams.SleepTime, downloadParams.OnPacketDownloaded, downloadParams.CancellationToken);
+            throw new NotImplementedException();
+            //return Download( downloadParams.Uri, downloadParams.MaxConnections, downloadParams.DownloadPath, downloadParams.FileName, downloadParams.SleepTime, downloadParams.OnPacketDownloaded, downloadParams.CancellationToken);
         }
         public async Task<M3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct)
         {
@@ -181,8 +176,6 @@ namespace Downla.Managers
                     indexStack.Push(i);
                 }
 
-                await ElaborateDownload(context, video, maxConnections, downloadPath, indexStack, sleepTime, onIterationStartDelegate, ct);
-
                 context.Status = DownloadStatuses.Completed;
             }
             catch (Exception e)
@@ -196,21 +189,6 @@ namespace Downla.Managers
             {
                 context.Infos.ActiveConnections = 0;
             }
-        }
-        private async Task ElaborateDownload(
-            DownloadMonitor context,
-            M3U8Playlist video,
-            int maxConnections,
-            string downloadPath,
-            Stack<int> indexStack,
-            int sleepTime,
-            OnDownlaEventDelegate? onIterationStartDelegate,
-            CancellationToken ct
-            )
-        {
-            var completedConnections = new CustomSortedList<IndexedItem<byte[]>>();
-            var activeConnections = new CustomSortedList<IndexedItem<byte[]>>();
-            var writeIndex = 0;
         }
 
 

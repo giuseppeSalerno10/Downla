@@ -5,6 +5,6 @@ namespace Downla.Managers.Interfaces
 {
     public interface IFileManager
     {
-        Task StartDownloadAsync(StartFileDownloadAsyncParams downloadParams, out DownloadMonitor downloadMonitor);
+        Task<DownloadMonitor> StartDownloadAsync(StartFileDownloadAsyncParams downloadParams);
     }
 }

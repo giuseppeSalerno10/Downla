@@ -4,6 +4,6 @@ namespace DownlaInterface.Menus.Interfaces
 {
     public interface IFileMenuManager
     {
-        void OpenMenu();
+        Task OpenMenu();
     }
 }

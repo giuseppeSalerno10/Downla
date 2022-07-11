@@ -8,6 +8,6 @@ namespace Downla.Managers
     {
         Task<byte[]> DownloadSegmentAsync(Uri uri, CancellationToken ct);
         Task<M3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct);
-        Task StartDownloadVideoAsync(StartM3U8DownloadAsyncParams downladParams, out DownloadMonitor downladMonitor);
+        Task<DownloadMonitor> StartDownloadVideoAsync(StartM3U8DownloadAsyncParams downladParams);
     }
 }
