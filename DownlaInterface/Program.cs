@@ -19,8 +19,6 @@ IHost host = builder.ConfigureServices(
         services.AddSingleton<IFileMenuManager, FileMenuManager>();
         services.AddSingleton<IM3U8MenuManager, M3U8MenuManager>();
 
-        services.AddSingleton<IDownloaderFileWorker, DownloaderFileWorker>();
-        services.AddSingleton<IWriterFileWorker, WriterFileWorker>();
         services.AddSingleton<App>();
     })
     .Build();
