@@ -91,9 +91,9 @@ namespace Downla.Managers
                 lock (downloadMonitor)
                 {
                     downloadMonitor.Infos.ActiveConnections = 0;
-                    downloadMonitor.Status = DownloadStatuses.Faulted;
 
                     downloadMonitor.Exceptions.Add(e);
+                    downloadMonitor.Status = DownloadStatuses.Faulted;
                 }
 
                 _logger.LogError($"Downla Error - Message: {e.Message}");
