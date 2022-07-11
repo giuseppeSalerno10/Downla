@@ -73,6 +73,10 @@ namespace Downla.Workers.File
                 {
                     await packetSemaphore.WaitAsync(downlaCts.Token);
 
+                    errorCount = context.Exceptions.Count;
+                    downloadedPacket = context.Infos.DownloadedPackets;
+                    connections = context.Infos.ActiveConnections;
+
                     if (downloadedPacket + connections < totalPacket)
                     {
 
@@ -110,10 +114,6 @@ namespace Downla.Workers.File
                         }
 
                     }
-
-                    errorCount = context.Exceptions.Count;
-                    downloadedPacket = context.Infos.DownloadedPackets;
-                    connections = context.Infos.ActiveConnections;
 
                     if (errorCount > 10)
                     {
@@ -184,10 +184,11 @@ namespace Downla.Workers.File
                 }
                 downloadSemaphore.Release();
             }
-            catch
+            catch(Exception e)
             {
                 lock (indexStack)
                 {
+                    context.Exceptions.Add(e);
                     indexStack.Push(fileIndex);
                 }
             }
