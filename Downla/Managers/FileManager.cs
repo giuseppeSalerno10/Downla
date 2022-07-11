@@ -93,8 +93,6 @@ namespace Downla.Managers
                     downloadMonitor.Infos.ActiveConnections = 0;
                     downloadMonitor.Status = DownloadStatuses.Faulted;
 
-                    downloadMonitor.DownloadTask.Dispose();
-                    downloadMonitor.WriteTask.Dispose();
                     downloadMonitor.Exceptions.Add(e);
                 }
 

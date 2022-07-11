@@ -111,12 +111,9 @@ namespace Downla.Workers.File
 
                     }
 
-                    lock (context)
-                    {
-                        errorCount = context.Exceptions.Count;
-                        downloadedPacket = context.Infos.DownloadedPackets;
-                        connections = context.Infos.ActiveConnections;
-                    }
+                    errorCount = context.Exceptions.Count;
+                    downloadedPacket = context.Infos.DownloadedPackets;
+                    connections = context.Infos.ActiveConnections;
 
                     if (errorCount > 10)
                     {
@@ -128,6 +125,8 @@ namespace Downla.Workers.File
                             context.Status = DownloadStatuses.Faulted;
                         }
                     }
+
+                    await Task.Delay(100);
                 }
             }
             catch (Exception e)

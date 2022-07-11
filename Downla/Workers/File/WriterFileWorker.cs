@@ -50,6 +50,8 @@ namespace Downla.Workers.File
 
             try
             {
+                _writingService.Create(folderPath, fileName);
+
                 while (!downlaCts.IsCancellationRequested && currentSize < fileSize)
                 {
                     IndexedItem<HttpResponseMessage> currentPart;
@@ -66,12 +68,11 @@ namespace Downla.Workers.File
 
                     _writingService.WriteBytes(folderPath, fileName, currentPart.Index * packetSize, ref bytes);
 
-                    lock (context)
+                    currentSize = context.Infos.CurrentSize += bytes.Length;
+                    if(currentPart.Index % 10 == 0)
                     {
-                        currentSize = context.Infos.CurrentSize += bytes.Length;
+                        GC.Collect();
                     }
-
-                    GC.Collect();
                 }
 
                 lock (context)
