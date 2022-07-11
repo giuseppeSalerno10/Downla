@@ -64,7 +64,7 @@ namespace Downla.Workers.File
 
                     var bytes = await _connectionService.ReadBytes(currentPart.Data);
 
-                    //_writingService.WriteBytes(folderPath, fileName, currentPart.Index * packetSize, ref bytes);
+                    _writingService.WriteBytes(folderPath, fileName, currentPart.Index * packetSize, ref bytes);
 
                     lock (context)
                     {
@@ -72,8 +72,6 @@ namespace Downla.Workers.File
                     }
 
                 }
-
-                _writingService.Merge(folderPath, fileName);
 
                 lock (context)
                 {
@@ -95,7 +93,6 @@ namespace Downla.Workers.File
             }
             finally
             {
-                _writingService.ClearTemp(folderPath, fileName);
                 completedConnections.Dispose();
 
             }

@@ -8,7 +8,5 @@
         void Delete(string path, string fileName);
         byte[] ReadBytes(string path, string fileName);
         string GeneratePath(string path, string name);
-        void Merge(string path, string name);
-        void ClearTemp(string path, string name);
     }
 }

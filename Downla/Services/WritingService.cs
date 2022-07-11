@@ -17,14 +17,7 @@ namespace Downla
         {
             File.Delete($"{path}/{name}");
         }
-        public void ClearTemp(string path, string name)
-        {
-            var files = Directory.GetFiles($"{path}/temp");
-            foreach (var file in files)
-            {
-                File.Delete(file);
-            }
-        }
+
         public void AppendBytes(string path, string name, ref byte[] bytes)
         {
             using var stream = File.Open($"{path}/{name}", FileMode.Append);
@@ -39,30 +32,21 @@ namespace Downla
             return $"{path}/{name}";
         }
 
-        public void Merge(string path, string name)
-        {
-
-        }
-
         public void WriteBytes(string path, string name, long offset, ref byte[] bytes)
         {
-            int fileIndex = (int) ((offset + bytes.Length)/int.MaxValue);
-            int localOffset = (int) offset - int.MaxValue * fileIndex;
-            if (!Directory.Exists($"{path}/temp"))
+
+            using (var file = File.Open($"{path}/{name}", FileMode.OpenOrCreate))
             {
-                Directory.CreateDirectory($"{path}/temp");
-            }
-            using (var file = File.Open($"{path}/temp/{name}.temp{fileIndex}", FileMode.OpenOrCreate))
-            {
-                if(file.Length <  localOffset)
+                if(file.Length < offset)
                 {
+                    int byteToWrite = (int) (offset - file.Length);
                     file.Position = file.Length;
-                    file.Write(new byte[localOffset], 0, localOffset);
+                    file.Write(new byte[byteToWrite], 0, byteToWrite);
                 }
 
-                file.Position = localOffset;
+                file.Position = offset;
                 file.Write(bytes, 0, bytes.Length);
-            };
+            }
         }
     }
 }
