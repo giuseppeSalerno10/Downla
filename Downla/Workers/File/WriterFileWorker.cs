@@ -27,6 +27,7 @@ namespace Downla.Workers.File
 
         public async Task StartThread(
             DownloadMonitor context,
+            int gcFactor,
             SemaphoreSlim downloadSemaphore,
             CustomSortedList<IndexedItem<HttpResponseMessage>> completedConnections,
             CancellationTokenSource downlaCts
@@ -69,7 +70,7 @@ namespace Downla.Workers.File
                     _writingService.WriteBytes(folderPath, fileName, currentPart.Index * packetSize, ref bytes);
 
                     currentSize = context.Infos.CurrentSize += bytes.Length;
-                    if(currentPart.Index % 10 == 0)
+                    if(currentPart.Index % gcFactor == 0)
                     {
                         GC.Collect();
                     }

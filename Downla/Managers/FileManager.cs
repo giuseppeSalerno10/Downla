@@ -66,6 +66,7 @@ namespace Downla.Managers
                 {
                     downloadMonitor.WriteTask = _writerWorker.StartThread(
                         downloadMonitor, 
+                        Math.Min(downloadParams.MaxConnections, downloadMonitor.Infos.TotalPackets),
                         downloadSemaphore,
                         completedConnections,
                         downlaCTS

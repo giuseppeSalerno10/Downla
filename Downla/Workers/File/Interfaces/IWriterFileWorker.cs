@@ -5,6 +5,6 @@ namespace Downla.Workers.File.Interfaces
 {
     public interface IWriterFileWorker
     {
-        Task StartThread(DownloadMonitor context, SemaphoreSlim downloadSemaphore, CustomSortedList<IndexedItem<HttpResponseMessage>> completedConnections, CancellationTokenSource downlaCts);
+        Task StartThread(DownloadMonitor context, int gcFactor, SemaphoreSlim downloadSemaphore, CustomSortedList<IndexedItem<HttpResponseMessage>> completedConnections, CancellationTokenSource downlaCts);
     }
 }
