@@ -1,8 +1,11 @@
-﻿namespace Downla.Models.FileModels
+﻿using System.Runtime.InteropServices;
+
+namespace Downla.Models.FileModels
 {
     public class IndexedItem<TModel> : IndexedItem
     {
-        public TModel Data { get; set; } = default!;
+        private TModel data = default!;
+        public TModel Data { get => data; set => data = value; }
     }
     public class IndexedItem : IComparable<IndexedItem>
     {

@@ -25,7 +25,5 @@ IHost host = builder.ConfigureServices(
     })
     .Build();
 
-host.RunAsync();
-
 await host.Services.GetRequiredService<App>()
     .Start();

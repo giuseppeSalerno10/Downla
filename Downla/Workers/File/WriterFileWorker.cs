@@ -50,10 +50,10 @@ namespace Downla.Workers.File
 
             try
             {
-                IndexedItem<HttpResponseMessage> currentPart;
-
                 while (!downlaCts.IsCancellationRequested && currentSize < fileSize)
                 {
+                    IndexedItem<HttpResponseMessage> currentPart;
+
                     await downloadSemaphore.WaitAsync(downlaCts.Token);
 
                     lock (completedConnections)
@@ -71,6 +71,7 @@ namespace Downla.Workers.File
                         currentSize = context.Infos.CurrentSize += bytes.Length;
                     }
 
+                    GC.Collect();
                 }
 
                 lock (context)

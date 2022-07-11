@@ -11,6 +11,7 @@
     <Description>Downla is a client that allows file download with parallel connections.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>image.png</PackageIcon>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
