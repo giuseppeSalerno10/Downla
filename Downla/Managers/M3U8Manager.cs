@@ -27,10 +27,49 @@ namespace Downla.Managers
             _logger = logger;
         }
 
-        public Task<DownloadMonitor> StartDownloadVideoAsync(StartM3U8DownloadAsyncParams downloadParams)
+        public async Task<DownloadMonitor> StartDownloadVideoAsync(StartM3U8DownloadAsyncParams downloadParams)
         {
-            throw new NotImplementedException();
-            //return Download( downloadParams.Uri, downloadParams.MaxConnections, downloadParams.DownloadPath, downloadParams.FileName, downloadParams.SleepTime, downloadParams.OnPacketDownloaded, downloadParams.CancellationToken);
+            var downloadMonitor = new DownloadMonitor() { Status = DownloadStatuses.Pending };
+            downloadMonitor.OnStatusChange += downloadParams.OnStatusChange;
+
+            try
+            {
+                var metadata = await GetVideoMetadataAsync(downloadParams.Uri, downloadParams.CancellationToken);
+
+                downloadMonitor.Infos.FileName = downloadParams.FileName;
+                downloadMonitor.Infos.FileDirectory = downloadParams.DownloadPath;
+                downloadMonitor.Infos.PacketSize = downloadParams.MaxPacketSize;
+
+                var playlist = metadata.Playlists[0];
+
+                downloadMonitor.Infos.TotalPackets = playlist.Segments.Length;
+
+                _writingService.Create(downloadParams.DownloadPath, downloadParams.FileName);
+
+                downloadMonitor.Status = DownloadStatuses.Downloading;
+
+                foreach (var segment in playlist.Segments)
+                {
+                    var bytes = await DownloadSegmentAsync(downloadParams.Uri, downloadParams.CancellationToken);
+                    _writingService.AppendBytes(downloadParams.DownloadPath, downloadParams.FileName, ref bytes);
+                }
+
+                downloadMonitor.Status = DownloadStatuses.Completed;
+            }
+            catch (Exception e)
+            {
+
+                downloadMonitor.Infos.ActiveConnections = 0;
+                downloadMonitor.Status = downloadParams.CancellationToken.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
+
+                downloadMonitor.DownloadTask.Dispose();
+                downloadMonitor.WriteTask.Dispose();
+                downloadMonitor.Exceptions.Add(e);
+
+                _logger.LogError($"Downla Error - Message: {e.Message}");
+            }
+
+            return downloadMonitor;
         }
         public async Task<M3U8Video> GetVideoMetadataAsync(Uri uri, CancellationToken ct)
         {
@@ -143,54 +182,6 @@ namespace Downla.Managers
 
             return playlistModel;
         }
-        private async Task Download(
-            DownloadMonitor context,
-            Uri uri,
-            int maxConnections,
-            string downloadPath,
-            string fileName,
-            int sleepTime,
-            OnDownlaEventDelegate? onIterationStartDelegate,
-            CancellationToken ct)
-        {
-            try
-            {
-                var partsAvaible = maxConnections;
-
-                var videoMetadata = await GetVideoMetadataAsync(uri, ct);
-                var video = videoMetadata
-                    .Playlists[^1];
-
-                _writingService.Create(downloadPath, fileName);
-
-                context.Infos.FileName = fileName;
-                context.Infos.FileDirectory = _writingService.GeneratePath(downloadPath, fileName);
-
-                context.Infos.FileSize = 0;
-
-                context.Infos.TotalPackets = video.Segments.Length;
-
-                Stack<int> indexStack = new Stack<int>();
-                for (int i = context.Infos.TotalPackets - 1; i >= 0; i--)
-                {
-                    indexStack.Push(i);
-                }
-
-                context.Status = DownloadStatuses.Completed;
-            }
-            catch (Exception e)
-            {
-                context.Exceptions.Add(e);
-                context.Status = ct.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
-                _logger.LogError($"[{DateTime.Now}] Downla Error - Message: {e.Message}");
-                throw;
-            }
-            finally
-            {
-                context.Infos.ActiveConnections = 0;
-            }
-        }
-
 
     }
 }

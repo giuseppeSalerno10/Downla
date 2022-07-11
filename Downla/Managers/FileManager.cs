@@ -60,6 +60,8 @@ namespace Downla.Managers
 
                 SemaphoreSlim downloadSemaphore = new SemaphoreSlim(0, downloadMonitor.Infos.TotalPackets);
 
+                downloadMonitor.Status = DownloadStatuses.Downloading;
+
                 lock (downloadMonitor)
                 {
                     downloadMonitor.WriteTask = _writerWorker.StartThread(
