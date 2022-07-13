@@ -47,7 +47,7 @@ namespace Downla.Managers
 
             try
             {
-                var fileMetadata = await _connectionService.GetMetadata(downloadParams.Uri, downloadParams.CancellationToken);
+                var fileMetadata = await _connectionService.GetMetadata(downloadParams.Uri, downloadParams.Headers, downloadParams.CancellationToken);
 
                 downloadMonitor.Infos.FileName = fileMetadata.Name;
                 downloadMonitor.Infos.FileDirectory = downloadParams.DownloadPath;

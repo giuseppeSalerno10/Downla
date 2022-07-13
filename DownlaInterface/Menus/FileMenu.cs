@@ -47,8 +47,10 @@ namespace DownlaInterface.Menus
             }
             var uri = new Uri(url);
 
-            var download = await _downlaClient.StartFileDownloadAsync(uri, 100);
-            await download.EnsureDownload();
+            var download = await _downlaClient.StartFileDownloadAsync(uri, 100, new Dictionary<string, string>()
+            {
+                { "Referer", "https://www.animesaturn.cc/watch?file=8aa651RRCl8pm" }
+            });
         }
     }
 }

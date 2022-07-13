@@ -24,12 +24,20 @@ namespace Downla
             return await ReadAsBytesAsync(await response);
         }
 
-        public async Task<MetadataModel> GetMetadata(Uri uri, CancellationToken ct)
+        public async Task<MetadataModel> GetMetadata(Uri uri, Dictionary<string,string>? requestHeaders, CancellationToken ct)
         {
             MetadataModel metadata;
 
             var httpClient = new HttpClient();
             var headRequest = new HttpRequestMessage(HttpMethod.Head, uri);
+            if (requestHeaders != null)
+            {
+                foreach (var header in requestHeaders)
+                {
+                    headRequest.Headers.Add(header.Key, header.Value);
+                }
+            }
+
             var headResponse = await httpClient.SendAsync(headRequest, ct);
 
             var headers = headResponse.Content.Headers;
