@@ -82,14 +82,14 @@ namespace Downla.Services
                 }
             }
 
-            result.Playlists = await GetPlaylists(rawPlaylists, baseUri, ct);
+            result.Playlists = await GetPlaylists(rawPlaylists, ct);
 
             return result;
 
 
         }
 
-        private async Task<M3U8Playlist[]> GetPlaylists(ConcurrentBag<M3U8Playlist> rawPlaylists, string baseUri, CancellationToken ct)
+        private async Task<M3U8Playlist[]> GetPlaylists(ConcurrentBag<M3U8Playlist> rawPlaylists, CancellationToken ct)
         {
             HttpClient httpClient = new HttpClient();
 
@@ -102,6 +102,10 @@ namespace Downla.Services
                         throw new ArgumentNullException(nameof(playlistBody), $"Playlist {rawPlaylist.Uri} returned null body");
                     }
                     var playlistData = GetStringArrayFromBody(playlistBody);
+
+                    var segmentToRemove = rawPlaylist.Uri.Segments[^1];
+                    var baseUri = rawPlaylist.Uri.AbsoluteUri.Replace($"/{segmentToRemove}", "");
+
                     var playlist = ParseDataIntoM3U8Playlist(playlistBody, baseUri);
 
                     rawPlaylist.Segments = playlist.Segments;

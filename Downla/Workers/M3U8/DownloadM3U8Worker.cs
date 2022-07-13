@@ -1,5 +1,6 @@
 ﻿using Downla.Models;
 using Downla.Models.FileModels;
+using Downla.Models.M3U8Models;
 using Downla.Services.Interfaces;
 using Downla.Workers.File.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -24,7 +25,7 @@ namespace Downla.Workers.File
 
         public async Task StartThread(
             DownloadMonitor context,
-            Uri uri,
+            M3U8Playlist playlist,
             int maxConnections,
             int sleepTime,
             OnDownlaEventDelegate? onPacketDownload,
@@ -41,9 +42,6 @@ namespace Downla.Workers.File
             int connections = 0;
 
             int errorCount = 0;
-
-            long startRange;
-            long endRange;
 
             int fileIndex;
 
@@ -81,10 +79,10 @@ namespace Downla.Workers.File
                     {
 
                         fileIndex = indexStack.Pop();
-                        startRange = fileIndex * packetSize;
-                        endRange = startRange + packetSize > fileSize ? fileSize : startRange + packetSize - 1;
 
-                        var task = _connectionService.GetHttpBytes(uri, null, downlaCts.Token)
+                        var segment = playlist.Segments[fileIndex];
+
+                        var task = _connectionService.GetHttpBytes(segment.Uri, null, downlaCts.Token)
                                                      .ContinueWith(
                                                         (httpMessageTask, fileIndex) => StartDownloadThread(
                                                             httpMessageTask,
@@ -126,7 +124,7 @@ namespace Downla.Workers.File
                         }
                     }
 
-                    await Task.Delay(100);
+                    await Task.Delay(sleepTime);
                 }
             }
             catch (Exception e)

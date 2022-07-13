@@ -23,19 +23,22 @@ namespace Downla.Managers
         private readonly IDownloaderM3U8Worker _downloadWorker;
         private readonly ILogger<M3U8Manager> _logger;
 
+        private readonly IWritingService _writingService;
         public M3U8Manager(
-            ILogger<M3U8Manager> logger, 
-            IHttpConnectionService connectionService, 
-            IWriterM3U8Worker writerWorker, 
-            IDownloaderM3U8Worker downloadWorker, 
+            ILogger<M3U8Manager> logger,
+            IHttpConnectionService connectionService,
+            IWriterM3U8Worker writerWorker,
+            IDownloaderM3U8Worker downloadWorker,
             IM3U8UtilitiesService m3u8Utilities
-            )
+,
+            IWritingService writingService)
         {
             _connectionService = connectionService;
             _logger = logger;
             _writerWorker = writerWorker;
             _downloadWorker = downloadWorker;
             _m3u8Utilities = m3u8Utilities;
+            _writingService = writingService;
         }
 
         public async Task<DownloadMonitor> StartVideoDownloadAsync(StartM3U8DownloadAsyncParams downloadParams)
@@ -91,7 +94,7 @@ namespace Downla.Managers
 
                     downloadMonitor.DownloadTask = _downloadWorker.StartThread(
                         downloadMonitor,
-                        downloadParams.Uri,
+                        selectedPlaylist,
                         downloadParams.MaxConnections,
                         downloadParams.SleepTime,
                         downloadParams.OnPacketDownloaded,
@@ -101,7 +104,12 @@ namespace Downla.Managers
                         );
                 }
 
-
+                /*await downloadMonitor.DownloadTask;
+                for (int i = 0; i < completedConnections.Count; i++)
+                {
+                    var bytes = completedConnections.ElementAt(i).Data;
+                    _writingService.AppendBytes(downloadParams.DownloadPath, downloadParams.FileName, ref bytes);
+                }*/
             }
             catch (Exception e)
             {

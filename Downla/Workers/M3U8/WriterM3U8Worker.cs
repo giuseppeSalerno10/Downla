@@ -33,7 +33,7 @@ namespace Downla.Workers.File
             CancellationTokenSource downlaCts
             )
         {
-            int wrotePacket = 0;
+            int writeIndex = 0;
             int totalPacket;
 
             string fileName;
@@ -50,28 +50,42 @@ namespace Downla.Workers.File
             {
                 _writingService.Create(folderPath, fileName);
 
-                while (!downlaCts.IsCancellationRequested && wrotePacket < totalPacket)
+                while (!downlaCts.IsCancellationRequested && writeIndex < totalPacket)
                 {
-                    IndexedItem<byte[]> currentPart;
-
                     await downloadSemaphore.WaitAsync(downlaCts.Token);
+
+                    IndexedItem<byte[]> currentPart;
 
                     lock (completedConnections)
                     {
                         currentPart = completedConnections.ElementAt(0);
-                        completedConnections.Remove(0);
                     }
 
-                    var bytes = currentPart.Data;
-
-                    _writingService.AppendBytes(folderPath, fileName, ref bytes);
-
-                    if(currentPart.Index % gcFactor == 0)
+                    if(writeIndex == currentPart.Index)
                     {
-                        GC.Collect();
+                        var bytes = currentPart.Data;
+
+                        _writingService.AppendBytes(folderPath, fileName, ref bytes);
+
+                        if (currentPart.Index % gcFactor == 0)
+                        {
+                            GC.Collect();
+                        }
+
+                        lock (completedConnections)
+                        {
+                            completedConnections.Remove(0);
+                        }
+
+                        writeIndex++;
+                    }
+                    else
+                    {
+                        downloadSemaphore.Release();
+                        await Task.Delay(100);
                     }
 
-                    wrotePacket++;
+
                 }
 
                 lock (context)
