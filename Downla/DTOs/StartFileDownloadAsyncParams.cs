@@ -13,7 +13,7 @@ namespace Downla.DTOs
         public int MaxConnections { get; set; }
         public long MaxPacketSize { get; set; }
         public string DownloadPath { get; set; } = null!;
-        public string? AuthorizationHeader { get; set; } = null!;
+        public Dictionary<string, string>? Headers { get; set; }
         public CancellationToken CancellationToken { get; set; }
 
 

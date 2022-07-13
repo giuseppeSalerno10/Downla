@@ -36,7 +36,7 @@ namespace Downla
         /// <param name="authorizationHeader">Authorization header used in the download</param>
         /// <param name="ct">Cancellation Token used to cancel the download</param>
         /// <returns>Download Task</returns>
-        public Task<DownloadMonitor> StartFileDownloadAsync(Uri uri, int sleepTime = 0, string? authorizationHeader = null, CancellationToken ct = default)
+        public Task<DownloadMonitor> StartFileDownloadAsync(Uri uri, int sleepTime = 0, Dictionary<string,string>? headers = null, CancellationToken ct = default)
         {
             StartFileDownloadAsyncParams par = new()
             {
@@ -44,7 +44,7 @@ namespace Downla
                 Uri=uri,
                 MaxConnections = MaxConnections,
                 MaxPacketSize = MaxPacketSize,
-                AuthorizationHeader = authorizationHeader,
+                Headers = headers,
                 DownloadPath = DownloadPath,
                 CancellationToken = ct,
 

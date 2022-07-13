@@ -75,7 +75,7 @@ namespace Downla.Managers
                     downloadMonitor.DownloadTask = _downloaderFileWorker.StartThread(
                         downloadMonitor, 
                         downloadParams.Uri, 
-                        downloadParams.AuthorizationHeader, 
+                        downloadParams.Headers, 
                         downloadParams.MaxConnections, 
                         downloadParams.SleepTime,
                         downloadParams.OnPacketDownloaded, 

@@ -25,7 +25,7 @@ namespace Downla.Workers.File
         public async Task StartThread(
             DownloadMonitor context,
             Uri uri,
-            string? authorizationHeader,
+            Dictionary<string, string>? headers,
             int maxConnections,
             int sleepTime,
             OnDownlaEventDelegate? onPacketDownload,
@@ -85,7 +85,7 @@ namespace Downla.Workers.File
                         startRange = fileIndex * packetSize;
                         endRange = startRange + packetSize > fileSize ? fileSize : startRange + packetSize - 1;
 
-                        var task = _connectionService.GetFileRangeAsync(uri, startRange, endRange, downlaCts.Token, authorizationHeader)
+                        var task = _connectionService.GetFileRangeAsync(uri, startRange, endRange, downlaCts.Token, headers)
                                                      .ContinueWith(
                                                         (httpMessageTask, fileIndex) => StartDownloadThread(
                                                             httpMessageTask,

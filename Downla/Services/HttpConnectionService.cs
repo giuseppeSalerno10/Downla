@@ -54,14 +54,17 @@ namespace Downla
             };
             return metadata;
         }
-        public Task<HttpResponseMessage> GetFileRangeAsync(Uri uri, long offset, long count, CancellationToken ct, string? authorizationHeader = null)
+        public Task<HttpResponseMessage> GetFileRangeAsync(Uri uri, long offset, long count, CancellationToken ct, Dictionary<string, string>? headers = null)
         {
             var getRequest = new HttpRequestMessage(HttpMethod.Get, uri);
 
             getRequest.Headers.Add("Range", $"bytes={offset}-{count}");
-            if (authorizationHeader != null)
+            if (headers != null)
             {
-                getRequest.Headers.Add("Authorization", authorizationHeader);
+                foreach (var header in headers)
+                {
+                    getRequest.Headers.Add(header.Key, header.Value);
+                }
             }
 
             return _httpClient.SendAsync(getRequest, ct);
