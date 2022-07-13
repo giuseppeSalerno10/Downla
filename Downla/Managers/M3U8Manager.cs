@@ -4,6 +4,7 @@ using Downla.Models.FileModels;
 using Downla.Models.M3U8Models;
 using Downla.Services;
 using Downla.Services.Interfaces;
+using Downla.Workers.File.Interfaces;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -18,21 +19,40 @@ namespace Downla.Managers
     {
         private readonly IHttpConnectionService _connectionService;
         private readonly IM3U8UtilitiesService _m3u8Utilities;
-        private readonly IWritingService _writingService;
+        private readonly IWriterM3U8Worker _writerWorker;
+        private readonly IDownloaderM3U8Worker _downloadWorker;
         private readonly ILogger<M3U8Manager> _logger;
 
-        public M3U8Manager(IM3U8UtilitiesService m3U8Reader, IWritingService writingService, ILogger<M3U8Manager> logger, IHttpConnectionService connectionService)
+        public M3U8Manager(
+            ILogger<M3U8Manager> logger, 
+            IHttpConnectionService connectionService, 
+            IWriterM3U8Worker writerWorker, 
+            IDownloaderM3U8Worker downloadWorker, 
+            IM3U8UtilitiesService m3u8Utilities
+            )
         {
-            _m3u8Utilities = m3U8Reader;
-            _writingService = writingService;
-            _logger = logger;
             _connectionService = connectionService;
+            _logger = logger;
+            _writerWorker = writerWorker;
+            _downloadWorker = downloadWorker;
+            _m3u8Utilities = m3u8Utilities;
         }
 
         public async Task<DownloadMonitor> StartVideoDownloadAsync(StartM3U8DownloadAsyncParams downloadParams)
         {
             var downloadMonitor = new DownloadMonitor() { Status = DownloadStatuses.Pending };
             downloadMonitor.OnStatusChange += downloadParams.OnStatusChange;
+
+            CustomSortedList<IndexedItem<byte[]>> completedConnections = new CustomSortedList<IndexedItem<byte[]>>();
+            downloadParams.CancellationToken.Register(() =>
+            {
+                lock (downloadMonitor)
+                {
+                    downloadMonitor.Status = DownloadStatuses.Canceled;
+                }
+            });
+
+            CancellationTokenSource downlaCTS = CancellationTokenSource.CreateLinkedTokenSource(downloadParams.CancellationToken);
 
             try
             {
@@ -52,18 +72,32 @@ namespace Downla.Managers
 
                 downloadMonitor.Infos.TotalPackets = selectedPlaylist.Segments.Length;
 
-                _writingService.Create(downloadParams.DownloadPath, downloadParams.FileName);
+                SemaphoreSlim downloadSemaphore = new SemaphoreSlim(0, downloadMonitor.Infos.TotalPackets);
 
                 downloadMonitor.Status = DownloadStatuses.Downloading;
 
-                foreach (var segment in selectedPlaylist.Segments)
+                lock (downloadMonitor)
                 {
-                    var bytes = await DownloadSegmentAsync(downloadParams.Uri, downloadParams.CancellationToken);
-                    _writingService.AppendBytes(downloadParams.DownloadPath, downloadParams.FileName, ref bytes);
-                    await Task.Delay(downloadParams.SleepTime);
+                    downloadMonitor.WriteTask = _writerWorker.StartThread(
+                        downloadMonitor,
+                        Math.Min(downloadParams.MaxConnections, downloadMonitor.Infos.TotalPackets),
+                        downloadSemaphore,
+                        completedConnections,
+                        downlaCTS
+                        );
+
+                    downloadMonitor.DownloadTask = _downloadWorker.StartThread(
+                        downloadMonitor,
+                        downloadParams.Uri,
+                        downloadParams.MaxConnections,
+                        downloadParams.OnPacketDownloaded,
+                        completedConnections,
+                        downloadSemaphore,
+                        downlaCTS
+                        );
                 }
 
-                downloadMonitor.Status = DownloadStatuses.Completed;
+
             }
             catch (Exception e)
             {

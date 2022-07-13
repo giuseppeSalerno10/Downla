@@ -34,7 +34,7 @@ namespace Downla.Managers
             var downloadMonitor = new DownloadMonitor() { Status = DownloadStatuses.Pending };
             downloadMonitor.OnStatusChange += downloadParams.OnStatusChange;
 
-            CustomSortedList<IndexedItem<HttpResponseMessage>> completedConnections = new CustomSortedList<IndexedItem<HttpResponseMessage>>();
+            CustomSortedList<IndexedItem<byte[]>> completedConnections = new CustomSortedList<IndexedItem<byte[]>>();
             downloadParams.CancellationToken.Register(() =>
             {
                 lock (downloadMonitor) 

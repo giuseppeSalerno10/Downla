@@ -41,6 +41,9 @@ namespace Downla
             services.AddSingleton<IDownloaderFileWorker, DownloaderFileWorker>();
             services.AddSingleton<IWriterFileWorker, WriterFileWorker>();
 
+            services.AddSingleton<IDownloaderM3U8Worker, DownloaderM3U8Worker>();
+            services.AddSingleton<IWriterM3U8Worker, WriterM3U8Worker>();
+
             services.AddSingleton(typeof(IM3U8UtilitiesService), opt.M3U8UtilitiesService);
             services.AddSingleton(typeof(IWritingService), opt.WritingService);
 

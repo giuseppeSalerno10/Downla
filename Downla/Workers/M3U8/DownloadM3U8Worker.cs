@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 
 namespace Downla.Workers.File
 {
-    public class DownloaderFileWorker : IDownloaderFileWorker
+    public class DownloaderM3U8Worker : IDownloaderM3U8Worker
     {
         private readonly ILogger<DownloaderFileWorker> _logger;
         private readonly IHttpConnectionService _connectionService;
 
-        public DownloaderFileWorker(ILogger<DownloaderFileWorker> logger, IHttpConnectionService connectionService)
+        public DownloaderM3U8Worker(ILogger<DownloaderFileWorker> logger, IHttpConnectionService connectionService)
         {
             _logger = logger;
             _connectionService = connectionService;
@@ -25,7 +25,6 @@ namespace Downla.Workers.File
         public async Task StartThread(
             DownloadMonitor context,
             Uri uri,
-            string? authorizationHeader,
             int maxConnections,
             OnDownlaEventDelegate? onPacketDownload,
             CustomSortedList<IndexedItem<byte[]>> completedConnections,
@@ -84,7 +83,7 @@ namespace Downla.Workers.File
                         startRange = fileIndex * packetSize;
                         endRange = startRange + packetSize > fileSize ? fileSize : startRange + packetSize - 1;
 
-                        var task = _connectionService.GetFileRangeAsync(uri, startRange, endRange, downlaCts.Token, authorizationHeader)
+                        var task = _connectionService.GetHttpBytes(uri, null, downlaCts.Token)
                                                      .ContinueWith(
                                                         (httpMessageTask, fileIndex) => StartDownloadThread(
                                                             httpMessageTask,
@@ -151,7 +150,7 @@ namespace Downla.Workers.File
 
 
         private async void StartDownloadThread(
-            Task<HttpResponseMessage> httpResponseMessage,
+            Task<byte[]> byteTask,
             int fileIndex,
             DownloadMonitor context,
             SemaphoreSlim downloadSemaphore,
@@ -164,32 +163,23 @@ namespace Downla.Workers.File
         {
             try
             {
-                var response = await httpResponseMessage;
-                var bytes = await _connectionService.ReadAsBytesAsync(response);
+                var bytes = await byteTask;
 
-                if(bytes != null)
+                var indexedItem = new IndexedItem<byte[]>()
                 {
-                    var indexedItem = new IndexedItem<byte[]>()
-                    {
-                        Data = bytes,
-                        Index = fileIndex!
-                    };
-                    lock (completedConnections)
-                    {
-                        completedConnections.Insert(indexedItem);
-                    }
-
-                    lock (context)
-                    {
-                        context.Infos.DownloadedPackets++;
-                        if (onIterationStartDelegate != null) { onIterationStartDelegate.Invoke(context.Status, context.Infos, context.Exceptions); }
-                    }
-                }
-                else
+                    Data = bytes,
+                    Index = fileIndex!
+                };
+                lock (completedConnections)
                 {
-                    indexStack.Push(fileIndex);
+                    completedConnections.Insert(indexedItem);
                 }
 
+                lock (context)
+                {
+                    context.Infos.DownloadedPackets++;
+                    if (onIterationStartDelegate != null) { onIterationStartDelegate.Invoke(context.Status, context.Infos, context.Exceptions); }
+                }
                 downloadSemaphore.Release();
             }
             catch(Exception e)
@@ -208,7 +198,7 @@ namespace Downla.Workers.File
                     activeConnections.Remove(new IndexedItem<Task>()
                     {
                         Index = fileIndex,
-                        Data = httpResponseMessage
+                        Data = byteTask
                     });
                 }
 

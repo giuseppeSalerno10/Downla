@@ -12,13 +12,13 @@ using System.Threading.Tasks;
 
 namespace Downla.Workers.File
 {
-    public class WriterFileWorker : IWriterFileWorker
+    public class WriterM3U8Worker : IWriterM3U8Worker
     {
         private readonly IWritingService _writingService;
         private readonly ILogger<WriterFileWorker> _logger;
         private readonly IHttpConnectionService _connectionService;
 
-        public WriterFileWorker(IWritingService writingService, ILogger<WriterFileWorker> logger, IHttpConnectionService connectionService)
+        public WriterM3U8Worker(IWritingService writingService, ILogger<WriterFileWorker> logger, IHttpConnectionService connectionService)
         {
             _writingService = writingService;
             _logger = logger;
@@ -33,27 +33,24 @@ namespace Downla.Workers.File
             CancellationTokenSource downlaCts
             )
         {
-
-            long currentSize = 0;
-            long fileSize;
-            long packetSize;
+            int wrotePacket = 0;
+            int totalPacket;
 
             string fileName;
             string folderPath;
 
             lock (context)
             {
+                totalPacket = context.Infos.TotalPackets;
                 folderPath = context.Infos.FileDirectory;
                 fileName = context.Infos.FileName;
-                fileSize = context.Infos.FileSize;
-                packetSize = context.Infos.PacketSize;
             }
 
             try
             {
                 _writingService.Create(folderPath, fileName);
 
-                while (!downlaCts.IsCancellationRequested && currentSize < fileSize)
+                while (!downlaCts.IsCancellationRequested && wrotePacket < totalPacket)
                 {
                     IndexedItem<byte[]> currentPart;
 
@@ -67,9 +64,8 @@ namespace Downla.Workers.File
 
                     var bytes = currentPart.Data;
 
-                    _writingService.WriteBytes(folderPath, fileName, currentPart.Index * packetSize, ref bytes);
+                    _writingService.AppendBytes(folderPath, fileName, ref bytes);
 
-                    currentSize = context.Infos.CurrentSize += bytes.Length;
                     if(currentPart.Index % gcFactor == 0)
                     {
                         GC.Collect();
