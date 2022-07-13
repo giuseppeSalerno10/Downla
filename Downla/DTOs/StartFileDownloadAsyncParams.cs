@@ -17,8 +17,8 @@ namespace Downla.DTOs
         public CancellationToken CancellationToken { get; set; }
 
 
-        public OnDownlaEventDelegate? OnStatusChange { get; internal set; }
-        public OnDownlaEventDelegate? OnPacketDownloaded { get; internal set; }
+        public OnDownlaEventDelegate? OnStatusChange { get; set; }
+        public OnDownlaEventDelegate? OnPacketDownloaded { get; set; }
 
     }
 }

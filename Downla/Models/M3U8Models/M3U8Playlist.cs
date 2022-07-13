@@ -8,21 +8,23 @@ namespace Downla.Models.M3U8Models
 {
     public record M3U8Playlist
     {
-        public Uri Uri { get; set; } = null!;
-        public M3U8PlaylistSegment[] Segments { get; set; } = null!;
-        public M3U8PlaylistHeader Header { get; set; } = new();
-
+        public Uri Uri { get; internal set; } = null!;
+        public M3U8PlaylistSegment[] Segments { get; internal set; } = null!;
+        public M3U8PlaylistHeader Header { get; internal set; } = new();
+        public string PlainString { get; internal set; } = null!;
+        public long Bandwidth { get; internal set; }
+        public int Resolution { get; internal set; }
     }
     public class M3U8PlaylistHeader
     {
-        public string Version { get; set; } = null!;
-        public string IsCacheAllowed { get; set; } = null!;
-        public string MediaSequence { get; set; } = null!;
-        public string PlaylistType { get; set; } = null!;
-        public string TargetDuration { get; set; } = null!;
+        public string Version { get; internal set; } = null!;
+        public string IsCacheAllowed { get; internal set; } = null!;
+        public string MediaSequence { get; internal set; } = null!;
+        public string PlaylistType { get; internal set; } = null!;
+        public string TargetDuration { get; internal set; } = null!;
     }
     public class M3U8PlaylistSegment
     {
-        public Uri Uri { get; set; } = null!;
+        public Uri Uri { get; internal set; } = null!;
     }
 }

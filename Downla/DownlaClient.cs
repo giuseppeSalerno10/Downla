@@ -77,7 +77,7 @@ namespace Downla
                 OnPacketDownloaded = OnPacketDownloaded
             };
 
-            return _m3U8Controller.StartDownloadVideoAsync(par);
+            return _m3U8Controller.StartVideoDownloadAsync(par);
         }
 
     }

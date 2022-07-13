@@ -6,15 +6,31 @@ namespace Downla
 {
     public class HttpConnectionService : IHttpConnectionService
     {
+        private readonly HttpClient _httpClient = new();
+
+
+        public async Task<string?> GetHttpRawData(Uri uri, object? body, CancellationToken ct)
+        {
+            var getRequest = new HttpRequestMessage(HttpMethod.Get, uri);
+            var response = _httpClient.SendAsync(getRequest, ct);
+
+            return await ReadAsStringAsync(await response);
+        }
+        public async Task<byte[]> GetHttpBytes(Uri uri, object? body, CancellationToken ct)
+        {
+            var getRequest = new HttpRequestMessage(HttpMethod.Get, uri);
+            var response = _httpClient.SendAsync(getRequest, ct);
+
+            return await ReadAsBytesAsync(await response);
+        }
+
         public async Task<MetadataModel> GetMetadata(Uri uri, CancellationToken ct)
         {
             MetadataModel metadata;
 
             var httpClient = new HttpClient();
-
             var headRequest = new HttpRequestMessage(HttpMethod.Head, uri);
-
-            var headResponse = await httpClient.SendAsync(headRequest, ct) ;
+            var headResponse = await httpClient.SendAsync(headRequest, ct);
 
             var headers = headResponse.Content.Headers;
 
@@ -36,33 +52,46 @@ namespace Downla
                 Name = name.Replace("\"", ""),
                 Size = (long)headers.ContentLength
             };
-
             return metadata;
         }
-
-        public async Task<HttpResponseMessage> GetFileRange(Uri uri, long offset, long count, CancellationToken ct, string? authorizationHeader = null)
+        public Task<HttpResponseMessage> GetFileRangeAsync(Uri uri, long offset, long count, CancellationToken ct, string? authorizationHeader = null)
         {
-            var httpClient = new HttpClient();
-
             var getRequest = new HttpRequestMessage(HttpMethod.Get, uri);
 
             getRequest.Headers.Add("Range", $"bytes={offset}-{count}");
-            if(authorizationHeader != null)
+            if (authorizationHeader != null)
             {
                 getRequest.Headers.Add("Authorization", authorizationHeader);
             }
 
-            var response = await httpClient.SendAsync(getRequest, ct);
-
-            return response;
+            return _httpClient.SendAsync(getRequest, ct);
         }
 
-        public async Task<byte[]> ReadBytes(HttpResponseMessage message)
+        public async Task<byte[]> ReadAsBytesAsync(HttpResponseMessage httpResponseMessage)
         {
-            return await message
-                .EnsureSuccessStatusCode()
-                .Content
-                .ReadAsByteArrayAsync();
+            byte[] result = Array.Empty<byte>();
+
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                result = await httpResponseMessage
+                    .Content
+                    .ReadAsByteArrayAsync();
+            }
+
+            return result;
+        }
+        public async Task<string?> ReadAsStringAsync(HttpResponseMessage httpResponseMessage)
+        {
+            string? result = null;
+
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                result = await httpResponseMessage
+                    .Content
+                    .ReadAsStringAsync();
+            }
+
+            return result;
         }
     }
 }

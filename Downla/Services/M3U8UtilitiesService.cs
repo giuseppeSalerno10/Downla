@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Downla.Models.M3U8Models;
+using Downla.Services.Interfaces;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,79 +12,171 @@ namespace Downla.Services
 {
     public class M3U8UtilitiesService : IM3U8UtilitiesService
     {
-        public virtual async Task<string[]> GetVideoRecords(Uri uri, CancellationToken ct = default)
+        private readonly IHttpConnectionService _connectionService;
+        public M3U8UtilitiesService(IHttpConnectionService connectionService)
         {
-            string videoRawData = await GetHttpRawData(uri, HttpMethod.Get, body: null, ct);
-            var data = videoRawData
-                .Trim()
-                .Replace("\r\n", "\n")
-                .Split("\n");
-
-            return data
-                .Where(record => !string.IsNullOrEmpty(record))
-                .ToArray();
-        }
-        public virtual async Task<string[]> GetPlaylistRecords(Uri uri, CancellationToken ct = default)
-        {
-            string videoRawData = await GetHttpRawData(uri, HttpMethod.Get, body: null, ct);
-            var data = videoRawData
-                .Trim()
-                .Replace("\r\n", "\n")
-                .Split("\n");
-
-            return data
-                .Where(record => !string.IsNullOrEmpty(record))
-                .ToArray();
-        }
-        public virtual Task<byte[]> GetSegmentBytes(Uri uri, CancellationToken ct = default)
-        {
-            return GetHttpBytes(uri, HttpMethod.Get, body: null, ct);
+            _connectionService = connectionService;
         }
 
-        public virtual Uri GeneratePlaylistUri(Uri initialUri, string playlist)
+        public async Task<M3U8Video> GetM3U8Video(Uri sourceUri, CancellationToken ct)
         {
-            var startRemoveIndex = initialUri.AbsoluteUri.LastIndexOf("/");
-            var basePath = initialUri.AbsoluteUri.Remove(startRemoveIndex);
-            Uri newUri = new Uri($"{basePath}/{playlist}");
+            var result = new M3U8Video();
+            var m3u8PlainBody = await _connectionService.GetHttpRawData(sourceUri, null, ct);
 
-            return newUri;
-        }
-        public virtual Uri GenerateSegmentUri(Uri initialUri, string segment)
-        {
-            var startRemoveIndex = initialUri.AbsoluteUri.LastIndexOf("/");
-            var basePath = initialUri.AbsoluteUri.Remove(startRemoveIndex);
-            Uri newUri = new Uri($"{basePath}/{segment}");
-
-            return newUri;
-        }
-
-
-        protected virtual async Task<string> GetHttpRawData(Uri uri, HttpMethod method, object? body, CancellationToken ct)
-        {
-            var response = await SendAsync(uri, method, body, ct);
-            return await response.Content.ReadAsStringAsync(ct);
-        }
-        protected virtual async Task<byte[]> GetHttpBytes(Uri uri, HttpMethod method, object? body, CancellationToken ct)
-        {
-            var response = await SendAsync(uri, method, body, ct);
-            return await response.Content.ReadAsByteArrayAsync(ct);
-        }
-        protected virtual async Task<HttpResponseMessage> SendAsync(Uri uri, HttpMethod method, object? body, CancellationToken ct)
-        {
-            HttpClient client = new HttpClient();
-            HttpRequestMessage request = new HttpRequestMessage(method, uri);
-
-            if (body != null)
+            if (m3u8PlainBody == null)
             {
-                string serializedBody = JsonSerializer.Serialize(body);
-                request.Content = new StringContent(serializedBody);
+                throw new ArgumentNullException(nameof(m3u8PlainBody), $"Video {sourceUri} returned null body");
             }
 
-            HttpResponseMessage response = await client.SendAsync(request, ct);
-            response.EnsureSuccessStatusCode();
+            result.PlainString = m3u8PlainBody;
 
-            return response;
+            string[] records = GetStringArrayFromBody(m3u8PlainBody);
+
+            string componentToDelete = sourceUri.Segments[^1];
+            string baseUri = sourceUri.AbsoluteUri.Replace($"/{componentToDelete}", "");
+
+            ConcurrentBag<M3U8Playlist> rawPlaylists = new ConcurrentBag<M3U8Playlist>();
+
+            for (int i = 0; i < records.Length && !ct.IsCancellationRequested; i++)
+            {
+                string? record = records[i];
+
+                string[] splittedRecord = record.Split(":");
+                switch (splittedRecord[0])
+                {
+                    case "#EXT-X-VERSION":
+                        result.Version = splittedRecord[1];
+                        break;
+
+                    case "#EXT-X-STREAM-INF":
+                        var additionalInfos = splittedRecord[1].Split(",");
+                        string playlistUri = records[i + 1].Replace("./", "");
+
+                        string? rawResolution = additionalInfos
+                            .FirstOrDefault(info => info.Contains("RESOLUTION"))?
+                            .Split("=")[^1]
+                            .Split("x")[^1];
+
+                        string? rawBandwidth = additionalInfos
+                            .FirstOrDefault(info => info.Contains("BANDWIDTH"))?
+                            .Split("=")[1];
+
+                        int resolution = rawResolution is null ? 0: int.Parse(rawResolution);
+                        long bandwidth = rawBandwidth is null ? 0 : int.Parse(rawBandwidth);
+
+
+
+                        M3U8Playlist rawPlaylist = new M3U8Playlist()
+                        {
+                            Uri = new Uri($"{baseUri}/{playlistUri}"),
+                            Bandwidth = bandwidth,
+                            Resolution = resolution
+                        };
+
+
+                        rawPlaylists.Add(rawPlaylist);
+                        break;
+                    case "#EXT-X-MEDIA":
+                        //streamInfosList.First().Infos = qualcosa;
+                        break;
+                }
+            }
+
+            result.Playlists = await GetPlaylists(rawPlaylists, baseUri, ct);
+
+            return result;
+
 
         }
+
+        private async Task<M3U8Playlist[]> GetPlaylists(ConcurrentBag<M3U8Playlist> rawPlaylists, string baseUri, CancellationToken ct)
+        {
+            HttpClient httpClient = new HttpClient();
+
+            await Parallel.ForEachAsync(rawPlaylists,
+                async (rawPlaylist, ct) =>
+                {
+                    var playlistBody = await _connectionService.GetHttpRawData(rawPlaylist.Uri, null, ct);
+                    if(playlistBody == null)
+                    {
+                        throw new ArgumentNullException(nameof(playlistBody), $"Playlist {rawPlaylist.Uri} returned null body");
+                    }
+                    var playlistData = GetStringArrayFromBody(playlistBody);
+                    var playlist = ParseDataIntoM3U8Playlist(playlistBody, baseUri);
+
+                    rawPlaylist.Segments = playlist.Segments;
+                    rawPlaylist.Header = playlist.Header;
+
+                    rawPlaylist.PlainString = playlistBody;
+                });
+
+            return rawPlaylists.ToArray();
+        }
+        private M3U8Playlist ParseDataIntoM3U8Playlist(string data, string baseUri)
+        {
+            var result = new M3U8Playlist();
+
+            string[] records = GetStringArrayFromBody(data);
+
+            List<M3U8PlaylistSegment> playlistSegments = new List<M3U8PlaylistSegment>();
+
+            for (int i = 0; i < records.Length; i++)
+            {
+                string? record = records[i];
+
+                string[] splittedRecord = record.Split(":");
+
+                switch (splittedRecord[0])
+                {
+                    case "#EXT-X-VERSION":
+                        result.Header.Version = splittedRecord[1];
+                        break;
+
+                    case "#EXT-X-ALLOW-CACHE":
+                        result.Header.IsCacheAllowed = splittedRecord[1];
+                        break;
+
+                    case "#EXT-X-TARGETDURATION":
+                        result.Header.TargetDuration = splittedRecord[1];
+                        break;
+
+                    case "#EXT-X-MEDIA-SEQUENCE":
+                        result.Header.MediaSequence = splittedRecord[1];
+                        break;
+
+                    case "#EXT-X-PLAYLIST-TYPE":
+                        result.Header.PlaylistType = splittedRecord[1];
+                        break;
+
+
+                    case "#EXTINF":
+                        var segmentUri = $"{baseUri}/{records[i+1]}";
+
+                        playlistSegments.Add(new M3U8PlaylistSegment
+                        {
+                            Uri = new Uri(segmentUri)
+                        });
+
+                        i++;
+                        break;
+                }
+            }
+            result.Segments = playlistSegments
+                .ToArray();
+
+            return result;
+        }
+        private string[] GetStringArrayFromBody(string body)
+        {
+            var data = body
+                .Trim()
+                .Replace("\r\n", "\n")
+                .Split("\n");
+
+            return data
+                .Where(record => !string.IsNullOrEmpty(record))
+                .ToArray();
+        }
+
     }
 }

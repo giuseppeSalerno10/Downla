@@ -84,7 +84,7 @@ namespace Downla.Workers.File
                         startRange = fileIndex * packetSize;
                         endRange = startRange + packetSize > fileSize ? fileSize : startRange + packetSize - 1;
 
-                        var task = _connectionService.GetFileRange(uri, startRange, endRange, downlaCts.Token, authorizationHeader)
+                        var task = _connectionService.GetFileRangeAsync(uri, startRange, endRange, downlaCts.Token, authorizationHeader)
                                                      .ContinueWith(
                                                         (httpMessageTask, fileIndex) => StartDownloadThread(
                                                             httpMessageTask,

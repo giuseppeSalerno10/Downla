@@ -65,7 +65,7 @@ namespace Downla.Workers.File
                         completedConnections.Remove(0);
                     }
 
-                    var bytes = await _connectionService.ReadBytes(currentPart.Data);
+                    var bytes = await _connectionService.ReadAsBytesAsync(currentPart.Data);
 
                     _writingService.WriteBytes(folderPath, fileName, currentPart.Index * packetSize, ref bytes);
 
