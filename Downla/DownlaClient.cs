@@ -63,7 +63,7 @@ namespace Downla
         /// <param name="sleepTime">Delay between two segment download</param>
         /// <param name="ct">Cancellation Token used to cancel the download</param>
         /// <returns>Download task</returns>
-        public Task<DownloadMonitor> StartM3U8DownloadAsync(Uri uri, string fileName, int sleepTime, CancellationToken ct = default)
+        public Task<DownloadMonitor> StartM3U8DownloadAsync(Uri uri, string fileName, int sleepTime = 0, CancellationToken ct = default)
         {
             StartM3U8DownloadAsyncParams par = new()
             {
