@@ -5,6 +5,6 @@ namespace Downla.Workers.File.Interfaces
 {
     public interface IDownloaderFileWorker
     {
-        Task StartThread(DownloadMonitor context, Uri uri, string? authorizationHeader, int maxConnections, OnDownlaEventDelegate? onPacketDownload, CustomSortedList<IndexedItem<byte[]>> completedConnections, SemaphoreSlim downloadSemaphore, CancellationTokenSource downlaCts);
+        Task StartThread(DownloadMonitor context, Uri uri, string? authorizationHeader, int maxConnections, int sleepTime, OnDownlaEventDelegate? onPacketDownload, CustomSortedList<IndexedItem<byte[]>> completedConnections, SemaphoreSlim downloadSemaphore, CancellationTokenSource downlaCts);
     }
 }

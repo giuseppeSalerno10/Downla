@@ -17,7 +17,7 @@ namespace DownlaInterface.Menus
         {
             _downlaClient = downlaClient;
 
-            _downlaClient.MaxPacketSize = 50000000;
+            _downlaClient.MaxPacketSize = 20000000;
 
             _downlaClient.OnPacketDownloaded += _downlaClient_OnPacketDownloaded;
             _downlaClient.OnStatusChange += _downlaClient_OnStatusChange;
@@ -47,7 +47,7 @@ namespace DownlaInterface.Menus
             }
             var uri = new Uri(url);
 
-            var download = await _downlaClient.StartFileDownloadAsync(uri);
+            var download = await _downlaClient.StartFileDownloadAsync(uri, 100);
             await download.EnsureDownload();
         }
     }

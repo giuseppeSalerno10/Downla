@@ -77,6 +77,7 @@ namespace Downla.Managers
                         downloadParams.Uri, 
                         downloadParams.AuthorizationHeader, 
                         downloadParams.MaxConnections, 
+                        downloadParams.SleepTime,
                         downloadParams.OnPacketDownloaded, 
                         completedConnections, 
                         downloadSemaphore,

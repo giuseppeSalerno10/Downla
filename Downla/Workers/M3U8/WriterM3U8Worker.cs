@@ -70,6 +70,8 @@ namespace Downla.Workers.File
                     {
                         GC.Collect();
                     }
+
+                    wrotePacket++;
                 }
 
                 lock (context)

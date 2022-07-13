@@ -12,7 +12,7 @@ namespace Downla.Interfaces
         event OnDownlaEventDelegate? OnStatusChange;
         event OnDownlaEventDelegate? OnPacketDownloaded;
 
-        Task<DownloadMonitor> StartFileDownloadAsync(Uri uri, string? authorizationHeader = null, CancellationToken ct = default);
-        Task<DownloadMonitor> StartM3U8DownloadAsync(Uri uri, string fileName, int startConnectionDelay, CancellationToken ct = default);
+        Task<DownloadMonitor> StartFileDownloadAsync(Uri uri, int sleepTime, string? authorizationHeader = null, CancellationToken ct = default);
+        Task<DownloadMonitor> StartM3U8DownloadAsync(Uri uri, string fileName, int sleepTime, CancellationToken ct = default);
     }
 }

@@ -27,6 +27,7 @@ namespace Downla.Workers.File
             Uri uri,
             string? authorizationHeader,
             int maxConnections,
+            int sleepTime,
             OnDownlaEventDelegate? onPacketDownload,
             CustomSortedList<IndexedItem<byte[]>> completedConnections,
             SemaphoreSlim downloadSemaphore,
@@ -126,7 +127,7 @@ namespace Downla.Workers.File
                         }
                     }
 
-                    await Task.Delay(100);
+                    await Task.Delay(sleepTime);
                 }
             }
             catch (Exception e)

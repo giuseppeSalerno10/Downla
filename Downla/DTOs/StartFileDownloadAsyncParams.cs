@@ -19,6 +19,6 @@ namespace Downla.DTOs
 
         public OnDownlaEventDelegate? OnStatusChange { get; set; }
         public OnDownlaEventDelegate? OnPacketDownloaded { get; set; }
-
+        public int SleepTime { get; internal set; }
     }
 }

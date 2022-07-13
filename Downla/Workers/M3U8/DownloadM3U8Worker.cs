@@ -26,6 +26,7 @@ namespace Downla.Workers.File
             DownloadMonitor context,
             Uri uri,
             int maxConnections,
+            int sleepTime,
             OnDownlaEventDelegate? onPacketDownload,
             CustomSortedList<IndexedItem<byte[]>> completedConnections,
             SemaphoreSlim downloadSemaphore,

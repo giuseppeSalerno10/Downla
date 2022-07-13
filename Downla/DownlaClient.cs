@@ -32,13 +32,15 @@ namespace Downla
         /// This method will start an asynchronous download operation.
         /// </summary>
         /// <param name="uri">File uri</param>
+        /// <param name="sleepTime">sleep everytime the download pipe is full</param>
         /// <param name="authorizationHeader">Authorization header used in the download</param>
         /// <param name="ct">Cancellation Token used to cancel the download</param>
         /// <returns>Download Task</returns>
-        public Task<DownloadMonitor> StartFileDownloadAsync(Uri uri, string? authorizationHeader = null, CancellationToken ct = default)
+        public Task<DownloadMonitor> StartFileDownloadAsync(Uri uri, int sleepTime = 0, string? authorizationHeader = null, CancellationToken ct = default)
         {
             StartFileDownloadAsyncParams par = new()
             {
+                SleepTime = sleepTime,
                 Uri=uri,
                 MaxConnections = MaxConnections,
                 MaxPacketSize = MaxPacketSize,

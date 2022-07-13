@@ -90,6 +90,7 @@ namespace Downla.Managers
                         downloadMonitor,
                         downloadParams.Uri,
                         downloadParams.MaxConnections,
+                        downloadParams.SleepTime,
                         downloadParams.OnPacketDownloaded,
                         completedConnections,
                         downloadSemaphore,
