@@ -48,7 +48,10 @@ namespace Downla.Managers
             {
                 lock (downloadMonitor)
                 {
-                    downloadMonitor.Status = DownloadStatuses.Canceled;
+                    if (downloadMonitor.Status == DownloadStatuses.Pending || downloadMonitor.Status == DownloadStatuses.Downloading)
+                    {
+                        downloadMonitor.Status = DownloadStatuses.Canceled;
+                    }
                 }
             });
 

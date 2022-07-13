@@ -46,11 +46,16 @@ namespace DownlaInterface.Menus
                 throw new Exception("Bad url");
             }
             var uri = new Uri(url);
+            CancellationTokenSource cts = new CancellationTokenSource();
 
             var download = await _downlaClient.StartFileDownloadAsync(uri, 100, new Dictionary<string, string>()
             {
                 { "Referer", "https://www.animesaturn.cc/watch?file=8aa651RRCl8pm" }
-            });
+            },cts.Token);
+
+            await download.EnsureDownload();
+
+            cts.Cancel();
         }
     }
 }
