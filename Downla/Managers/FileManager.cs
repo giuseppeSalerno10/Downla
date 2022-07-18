@@ -32,7 +32,6 @@ namespace Downla.Managers
         public async Task<DownloadMonitor> StartDownloadAsync(StartFileDownloadAsyncParams downloadParams)
         {
             var downloadMonitor = new DownloadMonitor() { Status = DownloadStatuses.Pending };
-            downloadMonitor.OnStatusChange += downloadParams.OnStatusChange;
 
             CustomSortedList<IndexedItem<byte[]>> completedConnections = new CustomSortedList<IndexedItem<byte[]>>();
             downloadParams.CancellationToken.Register(() =>
@@ -81,7 +80,6 @@ namespace Downla.Managers
                         downloadParams.Headers, 
                         downloadParams.MaxConnections, 
                         downloadParams.SleepTime,
-                        downloadParams.OnPacketDownloaded, 
                         completedConnections, 
                         downloadSemaphore,
                         downlaCTS

@@ -28,7 +28,6 @@ namespace Downla.Workers.File
             Dictionary<string, string>? headers,
             int maxConnections,
             int sleepTime,
-            OnDownlaEventDelegate? onPacketDownload,
             CustomSortedList<IndexedItem<byte[]>> completedConnections,
             SemaphoreSlim downloadSemaphore,
             CancellationTokenSource downlaCts
@@ -95,8 +94,7 @@ namespace Downla.Workers.File
                                                             packetSemaphore,
                                                             activeConnections,
                                                             completedConnections,
-                                                            indexStack,
-                                                            onPacketDownload
+                                                            indexStack
                                                             ),
                                                         fileIndex,
                                                         downlaCts.Token
@@ -159,8 +157,7 @@ namespace Downla.Workers.File
             SemaphoreSlim packetSemaphore,
             CustomSortedList<IndexedItem<Task>> activeConnections,
             CustomSortedList<IndexedItem<byte[]>> completedConnections,
-            Stack<int> indexStack,
-            OnDownlaEventDelegate? onIterationStartDelegate
+            Stack<int> indexStack
             )
         {
             try
@@ -183,7 +180,6 @@ namespace Downla.Workers.File
                     lock (context)
                     {
                         context.Infos.DownloadedPackets++;
-                        if (onIterationStartDelegate != null) { onIterationStartDelegate.Invoke(context.Status, context.Infos, context.Exceptions); }
                     }
                 }
                 else

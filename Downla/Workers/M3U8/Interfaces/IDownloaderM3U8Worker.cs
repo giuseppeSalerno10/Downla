@@ -6,6 +6,6 @@ namespace Downla.Workers.File.Interfaces
 {
     public interface IDownloaderM3U8Worker
     {
-        Task StartThread(DownloadMonitor context, M3U8Playlist playlist, int maxConnections, int sleepTime, OnDownlaEventDelegate? onPacketDownload, CustomSortedList<IndexedItem<byte[]>> completedConnections, SemaphoreSlim downloadSemaphore, CancellationTokenSource downlaCts);
+        Task StartThread(DownloadMonitor context, M3U8Playlist playlist, int maxConnections, int sleepTime, CustomSortedList<IndexedItem<byte[]>> completedConnections, SemaphoreSlim downloadSemaphore, CancellationTokenSource downlaCts);
     }
 }

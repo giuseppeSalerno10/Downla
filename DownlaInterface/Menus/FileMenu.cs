@@ -3,6 +3,7 @@ using Downla.Models;
 using DownlaInterface.Menus.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,21 +17,7 @@ namespace DownlaInterface.Menus
         public FileMenuManager(IDownlaClient downlaClient)
         {
             _downlaClient = downlaClient;
-
             _downlaClient.MaxPacketSize = 20000000;
-
-            _downlaClient.OnPacketDownloaded += _downlaClient_OnPacketDownloaded;
-            _downlaClient.OnStatusChange += _downlaClient_OnStatusChange;
-        }
-
-        private void _downlaClient_OnPacketDownloaded(Downla.DownloadStatuses status, DownloadMonitorInfos infos, IEnumerable<Exception> exceptions)
-        {
-            Console.WriteLine($"PacketDownloaded -> {infos.Percentage}");
-        }
-
-        private void _downlaClient_OnStatusChange(Downla.DownloadStatuses status, DownloadMonitorInfos infos, IEnumerable<Exception> exceptions)
-        {
-            Console.WriteLine($"Status Changed -> {status}");
         }
 
         public async Task OpenMenu()
@@ -53,9 +40,26 @@ namespace DownlaInterface.Menus
                 { "Referer", "https://www.animesaturn.cc/watch?file=8aa651RRCl8pm" }
             },cts.Token);
 
-            await download.EnsureDownload();
+            download.PropertyChanged += Download_PropertyChanged;
+            download.Infos.PropertyChanged += Infos_PropertyChanged;
 
-            cts.Cancel();
+            await download.EnsureDownloadCompletion();
+        }
+
+        private void Infos_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName!.Equals(nameof(DownloadMonitor.Infos.DownloadedPackets)))
+            {
+                Console.WriteLine("Packet Downloaded");
+            }
+        }
+
+        private void Download_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName!.Equals(nameof(DownloadMonitor.Status)))
+            {
+                Console.WriteLine("Status Changed");
+            }
         }
     }
 }

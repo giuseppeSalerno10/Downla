@@ -44,7 +44,6 @@ namespace Downla.Managers
         public async Task<DownloadMonitor> StartVideoDownloadAsync(StartM3U8DownloadAsyncParams downloadParams)
         {
             var downloadMonitor = new DownloadMonitor() { Status = DownloadStatuses.Pending };
-            downloadMonitor.OnStatusChange += downloadParams.OnStatusChange;
 
             CustomSortedList<IndexedItem<byte[]>> completedConnections = new CustomSortedList<IndexedItem<byte[]>>();
             downloadParams.CancellationToken.Register(() =>
@@ -97,19 +96,11 @@ namespace Downla.Managers
                         selectedPlaylist,
                         downloadParams.MaxConnections,
                         downloadParams.SleepTime,
-                        downloadParams.OnPacketDownloaded,
                         completedConnections,
                         downloadSemaphore,
                         downlaCTS
                         );
                 }
-
-                /*await downloadMonitor.DownloadTask;
-                for (int i = 0; i < completedConnections.Count; i++)
-                {
-                    var bytes = completedConnections.ElementAt(i).Data;
-                    _writingService.AppendBytes(downloadParams.DownloadPath, downloadParams.FileName, ref bytes);
-                }*/
             }
             catch (Exception e)
             {

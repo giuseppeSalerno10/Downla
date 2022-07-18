@@ -11,8 +11,6 @@ namespace Downla
     public class DownlaClient : IDownlaClient
     {
         #region Attributes
-        public event OnDownlaEventDelegate? OnStatusChange;
-        public event OnDownlaEventDelegate? OnPacketDownloaded;
 
         public string DownloadPath { get; set; } = $"{Environment.CurrentDirectory}/Downla_Downloads";
         public int MaxConnections { get; set; } = 10;
@@ -47,9 +45,6 @@ namespace Downla
                 Headers = headers,
                 DownloadPath = DownloadPath,
                 CancellationToken = ct,
-
-                OnStatusChange = OnStatusChange,
-                OnPacketDownloaded = OnPacketDownloaded
             };
 
             return _fileController.StartDownloadAsync(par);
@@ -74,9 +69,6 @@ namespace Downla
                 FileName = fileName,
                 SleepTime = sleepTime,
                 CancellationToken = ct,
-
-                OnStatusChange = OnStatusChange,
-                OnPacketDownloaded = OnPacketDownloaded
             };
 
             return _m3U8Controller.StartVideoDownloadAsync(par);

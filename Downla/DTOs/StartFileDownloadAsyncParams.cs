@@ -15,10 +15,6 @@ namespace Downla.DTOs
         public string DownloadPath { get; set; } = null!;
         public Dictionary<string, string>? Headers { get; set; }
         public CancellationToken CancellationToken { get; set; }
-
-
-        public OnDownlaEventDelegate? OnStatusChange { get; set; }
-        public OnDownlaEventDelegate? OnPacketDownloaded { get; set; }
         public int SleepTime { get; internal set; }
     }
 }

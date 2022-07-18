@@ -16,9 +16,5 @@ namespace Downla.DTOs
         public CancellationToken CancellationToken { get; set; }
         public string FileName { get; internal set; } = null!;
         public int SleepTime { get; internal set; }
-
-        public OnDownlaEventDelegate? OnStatusChange { get; internal set; }
-        public OnDownlaEventDelegate? OnPacketDownloaded { get; internal set; }
-
     }
 }

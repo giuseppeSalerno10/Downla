@@ -1,28 +1,11 @@
-﻿namespace Downla.Models
+﻿using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
+namespace Downla.Models
 {
-    public class DownloadMonitor
+    public class DownloadMonitor : INotifyPropertyChanged
     {
-        private DownloadStatuses status;
-        public DownloadStatuses Status
-        {
-            get { return status; }
-            internal set
-            {
-                if (OnStatusChange != null) { OnStatusChange.Invoke(value, Infos, Exceptions); }
-                status = value;
-            }
-        }
-
-        public event OnDownlaEventDelegate? OnStatusChange;
-
-        public DownloadMonitorInfos Infos { get; internal set; } = new();
-        public List<Exception> Exceptions { get; internal set; } = new();
-
-        internal Task WriteTask { get; set; } = null!;
-        internal Task DownloadTask { get; set; } = null!;
-
-
-        public async Task EnsureDownload()
+        public async Task EnsureDownloadCompletion()
         {
             await DownloadTask;
             await WriteTask;
@@ -30,20 +13,164 @@
             DownloadTask.Dispose();
             WriteTask.Dispose();
         }
+
+        public DownloadStatuses Status
+        {
+            get { return status; }
+            internal set
+            {
+                if (value != status) 
+                {
+                    status = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+        public DownloadMonitorInfos Infos { get; internal set; } = new();
+        public List<Exception> Exceptions { get; internal set; } = new();
+        internal Task WriteTask { get; set; } = null!;
+        internal Task DownloadTask { get; set; } = null!;
+
+        #region Fields
+        private DownloadStatuses status;
+        #endregion
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
     }
 
-    public class DownloadMonitorInfos
+    public class DownloadMonitorInfos : INotifyPropertyChanged
     {
-        public int Percentage { get => TotalPackets == 0 ? 0 : DownloadedPackets * 100 / TotalPackets; }
-        public int TotalPackets { get; internal set; }
-        public int ActiveConnections { get; internal set; }
-        public int DownloadedPackets { get; internal set; }
-        public long FileSize { get; internal set; }
-        public long PacketSize { get; internal set; }
-        public long CurrentSize { get; internal set; }
-        public string FileName { get; internal set; } = string.Empty;
-        public string FileDirectory { get; internal set; } = string.Empty;
-    }
+        public int Percentage 
+        { 
+            get => percentage;
+            private set 
+            {
+                if (percentage != value)
+                {
+                    percentage = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+        public int TotalPackets 
+        { 
+            get => totalPackets;
+            internal set 
+            {
+                if (totalPackets != value)
+                {
+                    totalPackets = value;
+                    NotifyPropertyChanged();
+                }
+            } 
+        }
+        public int ActiveConnections 
+        {
+            get => activeConnections;
+            internal set 
+            {
+                if (activeConnections != value)
+                {
+                    activeConnections = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+        public long FileSize 
+        { 
+            get => fileSize;
+            internal set
+            {
+                if (fileSize != value)
+                {
+                    fileSize = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+        public long PacketSize 
+        { 
+            get => packetSize;
+            internal set
+            {
+                if (packetSize != value)
+                {
+                    packetSize = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+        public long CurrentSize 
+        { 
+            get => currentSize;
+            internal set
+            {
+                if (currentSize != value)
+                {
+                    currentSize = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+        public string FileName 
+        { 
+            get => fileName ?? throw new Exception("fileName is null");
+            internal set
+            {
+                if (fileName != value)
+                {
+                    fileName = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+        public string FileDirectory
+        {
+            get => fileDirectory ?? throw new Exception("fileDirectory is null");
+            internal set
+            {
+                if (fileDirectory != value)
+                {
+                    fileDirectory = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+        public int DownloadedPackets
+        {
+            get => downloadedPackets;
+            internal set
+            {
+                if (downloadedPackets != value)
+                {
+                    downloadedPackets = value;
+                    Percentage = TotalPackets == 0 ? 0 : downloadedPackets * 100 / TotalPackets;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
 
-    public delegate void OnDownlaEventDelegate(DownloadStatuses status, DownloadMonitorInfos infos, IEnumerable<Exception> exceptions);
+        #region Fields
+        private int downloadedPackets;
+        private string? fileDirectory;
+        private int percentage;
+        private int totalPackets;
+        private int activeConnections;
+        private long fileSize;
+        private long packetSize;
+        private long currentSize;
+        private string? fileName;
+        #endregion
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
 }
