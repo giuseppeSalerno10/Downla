@@ -5,6 +5,7 @@ on:
     branches: [ master ]
     paths-ignore:
       - '.github/workflows/**'
+      - 'DownlaInterface/*'
 
 env:
   NUGET_TOKEN: ${{ secrets.NUGET_TOKEN }}
