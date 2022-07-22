@@ -94,7 +94,8 @@ namespace Downla.Workers.File
                                                             packetSemaphore,
                                                             activeConnections,
                                                             completedConnections,
-                                                            indexStack
+                                                            indexStack,
+                                                            downlaCts
                                                             ),
                                                         fileIndex,
                                                         downlaCts.Token
@@ -137,7 +138,7 @@ namespace Downla.Workers.File
                 lock (context)
                 {
                     context.Exceptions.Add(e);
-                    if (context.Status != DownloadStatuses.Faulted) { context.Status = DownloadStatuses.Faulted; }
+                    context.Status = DownloadStatuses.Faulted;
                 }
             }
             finally
@@ -157,15 +158,16 @@ namespace Downla.Workers.File
             SemaphoreSlim packetSemaphore,
             CustomSortedList<IndexedItem<Task>> activeConnections,
             CustomSortedList<IndexedItem<byte[]>> completedConnections,
-            Stack<int> indexStack
+            Stack<int> indexStack,
+            CancellationTokenSource downlaCts
             )
         {
             try
             {
                 var response = await httpResponseMessage;
-                var bytes = await _connectionService.ReadAsBytesAsync(response);
+                byte[] bytes = await _connectionService.ReadAsBytesAsync(response);
 
-                if(bytes != null)
+                if (response.IsSuccessStatusCode && bytes.Any())
                 {
                     var indexedItem = new IndexedItem<byte[]>()
                     {
@@ -181,13 +183,22 @@ namespace Downla.Workers.File
                     {
                         context.Infos.DownloadedPackets++;
                     }
+
+                    downloadSemaphore.Release();
+
                 }
                 else
                 {
-                    indexStack.Push(fileIndex);
+                    lock (context)
+                    {
+                        context.Status = DownloadStatuses.Faulted;
+                        context.Exceptions.Add(new HttpRequestException("Download can not proceed", null, response.StatusCode));
+                    }
+
+                    downlaCts.Cancel();
+
                 }
 
-                downloadSemaphore.Release();
             }
             catch(Exception e)
             {

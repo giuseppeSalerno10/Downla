@@ -19,7 +19,7 @@ namespace Downla.Models
             get { return status; }
             internal set
             {
-                if (value != status) 
+                if (!value.Equals(status))
                 {
                     status = value;
                     NotifyPropertyChanged();
