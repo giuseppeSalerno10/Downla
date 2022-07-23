@@ -108,8 +108,6 @@ namespace Downla.Managers
                 downloadMonitor.Infos.ActiveConnections = 0;
                 downloadMonitor.Status = downloadParams.CancellationToken.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
 
-                downloadMonitor.DownloadTask.Dispose();
-                downloadMonitor.WriteTask.Dispose();
                 downloadMonitor.Exceptions.Add(e);
 
                 _logger.LogError($"Downla Error - Message: {e.Message}");
