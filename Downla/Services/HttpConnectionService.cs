@@ -40,6 +40,8 @@ namespace Downla
 
             var headResponse = await httpClient.SendAsync(headRequest, ct);
 
+            headResponse.EnsureSuccessStatusCode();
+
             var headers = headResponse.Content.Headers;
 
             string name;

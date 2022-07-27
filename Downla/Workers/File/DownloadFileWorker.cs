@@ -115,15 +115,16 @@ namespace Downla.Workers.File
 
                     }
 
-                    if (errorCount > 10)
+                    if (errorCount >= 10)
                     {
                         _logger.LogError($"Downla Downloading Error - Message: too many errors - count {errorCount}");
 
-                        downlaCts.Cancel();
                         lock (context)
                         {
                             context.Status = DownloadStatuses.Faulted;
                         }
+
+                        downlaCts.Cancel();
                     }
 
                     await Task.Delay(sleepTime);
@@ -135,13 +136,14 @@ namespace Downla.Workers.File
                 {
                     _logger.LogError($"Downla Downloading Error - Message: {e.Message}");
 
-                    downlaCts.Cancel();
-
                     lock (context)
                     {
                         context.Exceptions.Add(e);
                         context.Status = DownloadStatuses.Faulted;
                     }
+
+                    downlaCts.Cancel();
+
                 }
 
             }

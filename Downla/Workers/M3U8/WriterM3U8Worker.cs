@@ -100,13 +100,13 @@ namespace Downla.Workers.File
                 {
                     _logger.LogError($"[{DateTime.Now}] Downla Writing Error - Message: {e.Message}");
 
-                    downlaCts.Cancel();
-
                     lock (context)
                     {
                         context.Exceptions.Add(e);
                         context.Status = DownloadStatuses.Faulted;
                     }
+
+                    downlaCts.Cancel();
                 }
                 _writingService.Delete(folderPath, fileName);
             }

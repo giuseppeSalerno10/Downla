@@ -52,6 +52,7 @@ namespace Downla.Managers
                 {
                     if (downloadMonitor.Status == DownloadStatuses.Pending || downloadMonitor.Status == DownloadStatuses.Downloading)
                     {
+                        downloadMonitor.Exceptions.Add(new OperationCanceledException("Operation canceled by the user"));
                         downloadMonitor.Status = DownloadStatuses.Canceled;
                     }
                 }
@@ -105,10 +106,14 @@ namespace Downla.Managers
             catch (Exception e)
             {
 
-                downloadMonitor.Infos.ActiveConnections = 0;
-                downloadMonitor.Status = downloadParams.CancellationToken.IsCancellationRequested ? DownloadStatuses.Canceled : DownloadStatuses.Faulted;
+                lock (downloadMonitor)
+                {
+                    downloadMonitor.Infos.ActiveConnections = 0;
 
-                downloadMonitor.Exceptions.Add(e);
+                    downloadMonitor.Exceptions.Add(e);
+                    downloadMonitor.Status = DownloadStatuses.Faulted;
+                }
+                downlaCTS.Cancel();
 
                 _logger.LogError($"Downla Error - Message: {e.Message}");
             }

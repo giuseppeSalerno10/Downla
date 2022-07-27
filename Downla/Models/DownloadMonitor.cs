@@ -7,11 +7,18 @@ namespace Downla.Models
     {
         public async Task EnsureDownloadCompletion()
         {
-            await DownloadTask;
-            await WriteTask;
+            if(DownloadTask != null)
+            {
+                await DownloadTask;
+                DownloadTask.Dispose();
+            }
+            
+            if(WriteTask != null)
+            {
+                await WriteTask;
+                WriteTask.Dispose();
+            }
 
-            DownloadTask.Dispose();
-            WriteTask.Dispose();
         }
 
         public DownloadStatuses Status
