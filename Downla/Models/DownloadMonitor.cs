@@ -19,7 +19,7 @@ namespace Downla.Models
             get { return status; }
             internal set
             {
-                if (value != DownloadStatuses.Canceled && value != status)
+                if (value != status)
                 {
                     status = value;
                     NotifyPropertyChanged();

@@ -43,6 +43,8 @@ namespace DownlaInterface.Menus
             download.PropertyChanged += Download_PropertyChanged;
             download.Infos.PropertyChanged += Infos_PropertyChanged;
 
+            cts.Cancel();
+
             await download.EnsureDownloadCompletion();
         }
 

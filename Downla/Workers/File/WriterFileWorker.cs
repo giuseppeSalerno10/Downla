@@ -84,15 +84,20 @@ namespace Downla.Workers.File
             }
             catch (Exception e)
             {
-                _logger.LogError($"Downla Writing Error - Message: {e.Message}");
-
-                downlaCts.Cancel();
-
-                lock (context)
+                if (!downlaCts.IsCancellationRequested)
                 {
-                    context.Exceptions.Add(e);
-                    context.Status = DownloadStatuses.Faulted;
+                    _logger.LogError($"Downla Writing Error - Message: {e.Message}");
+
+                    downlaCts.Cancel();
+
+                    lock (context)
+                    {
+                        context.Exceptions.Add(e);
+                        context.Status = DownloadStatuses.Faulted;
+                    }
                 }
+
+                _writingService.Delete(folderPath, fileName);
             }
             finally
             {
